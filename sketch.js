@@ -12,14 +12,39 @@
 // 4. Sunflower
 // 5. Zombie system
 
-let grid;
+let visibleGrid;
 let cellSize;
+let gridStartingX;
+let gridStartingY;
 // [y, x]
 const GRID_DIMENSIONS = [5, 9];
 // tile colours
 const LIGHT_TILE = 0;
+let lightColour;
 const MEDIUM_TILE = 1;
+let mediumColour;
 const DARK_TILE = 2;
+let darkColour;
+
+// grid that tracks where the plants are
+let plantGrid;
+
+let plantsArray = [];
+
+
+
+class Plant {
+  constructor(_x, _y){
+    this.x = _x;
+    this.y = _y;
+
+    this.health;
+  }
+
+  
+}
+
+
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -27,12 +52,25 @@ function setup() {
 }
 
 function reset(){
-  grid = generateGrid(GRID_DIMENSIONS[0], GRID_DIMENSIONS[1]);
-  console.log(grid);
+  visibleGrid = generateGrid(GRID_DIMENSIONS[0], GRID_DIMENSIONS[1]);
+  console.log(visibleGrid);
+
+  plantGrid = generatePlantGrid(GRID_DIMENSIONS[0], GRID_DIMENSIONS[1]);
+  console.log(plantGrid);
+
+  cellSize = height / 6;
+  gridStartingX = width/2 - cellSize*(GRID_DIMENSIONS[1] / 2);
+  gridStartingY = height - cellSize*GRID_DIMENSIONS[0];
+
+  lightColour = color(255, 255, 255);
+  mediumColour = color(100, 100, 100);
+  darkColour = color(0, 0, 0);
 }
 
 function draw() {
   background(220);
+
+  displayGrid();
 }
 
 
@@ -67,6 +105,40 @@ function generateGrid(yDimension, xDimension){
   return newGrid;
 }
 
-function drawGrid(){
+function displayGrid(){
+  for (let _y = 0; _y < visibleGrid.length; _y++){
+    for (_x = 0; _x < visibleGrid[_y].length; _x++){
+      if (visibleGrid[_y][_x] === MEDIUM_TILE){
+        fill(mediumColour);
+      }
+      else if (visibleGrid[_y][_x] === LIGHT_TILE){
+        fill(lightColour);
+      }
+      else if (visibleGrid[_y][_x] === DARK_TILE){
+        fill(darkColour);
+      }
+      noStroke();
+      square(_x * cellSize + gridStartingX, _y * cellSize + gridStartingY, cellSize);
+    }
+  }
+}
 
+// 0 = empty
+// 1 = peashooter
+// 2 = sunflower
+function generatePlantGrid(yDimension, xDimension){
+  let newGrid = [];
+
+  for (let y = 0; y < yDimension; y++){
+    newGrid.push([]);
+    for (let x = 0; x < xDimension; x++){
+      newGrid[y].push(0);
+    }
+  }
+  return newGrid;
+}
+
+// tracks the position of all plants on the grid
+function trackingPlantsOnGrid(){
+  
 }
