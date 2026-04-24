@@ -30,37 +30,51 @@ let darkColour;
 // grid that tracks where the plants are
 let plantGrid;
 const EMPTY_SPACE = 0;
-const PEASHOOTER_SPACE = 1;
+const SUNFLOWER_SPACE = 1;
+const PEASHOOTER_SPACE = 2;
 
 let plantsArray = [];
+let selectedPlantType = "null";
+
+let shopPackets = [];
+let sunAmount;
 
 
 
 class Plant {
-  constructor(){
-    this.x;
-    this.y;
-    this.health;
+  constructor(_x, _y, _health, _type){
+    this.x = _x;
+    this.y = _y;
+    this.health = _health;
+    this.type = _type;
 
-    this.plantType;
+    // other variables that don't need to be used yet tbh
+    this.fireRate;
   }
 
   display(){
     stroke(100);
-    fill("green");
+    if (this.type === "sunflower"){
+      fill("yellow");
+    }
+    if (this.type === "peashooter"){
+      fill("green");
+    }
+    
     rectMode(CENTER);
     rect(this.x * cellSize + gridStartingX + cellSize/2, this.y * cellSize + gridStartingY + cellSize/2, cellSize*0.5, cellSize*0.5);
   }
 }
 
-class Peashooter extends Plant{
+class Sunflower extends Plant {
   constructor(_x, _y){
-    super();
-    this.x = _x;
-    this.y = _y;
+    super(_x, _y, 15, "sunflower");
+  }
+}
 
-    this.health = 20;
-    this.plantType = "peashooter";
+class Peashooter extends Plant {
+  constructor(_x, _y){
+    super(_x, _y, 20, "peashooter");
   }
 }
 
@@ -70,6 +84,7 @@ function setup() {
   createCanvas(windowWidth, windowHeight);
   reset();
   plantsArray.push(new Peashooter(2, 3));
+  plantsArray.push(new Sunflower(4, 2));
 }
 
 function reset(){
@@ -150,8 +165,8 @@ function displayGrid(){
 }
 
 // 0 = empty
-// 1 = peashooter
-// 2 = sunflower
+// 1 = sunflower
+// 2 = peashooter
 
 // tracks the position of all plants on the grid
 function trackingPlantsOnGrid(){
@@ -186,7 +201,13 @@ function trackingPlantsOnGrid(){
 
       for (let plant of plantsArray){
         if (plant.x === _x && plant.y === _y){
-          newGrid[_y][_x] = PEASHOOTER_SPACE;
+          if (plant.type === "sunflower"){
+            newGrid[_y][_x] = SUNFLOWER_SPACE;
+          }
+          if (plant.type === "peashooter"){
+            newGrid[_y][_x] = PEASHOOTER_SPACE;
+          }
+          
         }
       }
     }
@@ -204,8 +225,41 @@ function managePlants(){
 }
 
 function plantShop(){
+  let shopHeight = cellSize * 1.7;
+  let shopWidth = cellSize * COLUMNS;
+
   stroke(0);
   rectMode(CORNER);
   fill("brown");
-  rect(gridStartingX, 0, cellSize * COLUMNS, cellSize * 1.7);
+  rect(gridStartingX, 0, shopWidth, shopHeight);
+
+  let buttonWidth = shopWidth / 11;
+  let buttonHeight = shopHeight * 0.8;
+
+  // sun amount UI
+
+
+  // buttons to select the plants you want to buy
+
+  // peashooter
+  rectMode(CENTER);
+  fill("green");
+  rect(gridStartingX + 50, 50, buttonWidth, buttonHeight);
+  if (dist(mouseX, mouseY, gridStartingX + 50, 50) < 50){
+    selectedPlantType = "peashooter";
+  }
+
+}
+
+function mousePressed(){
+  let x = floor(mouseX - gridStartingX);
+  let y = floor(mouseY - gridStartingY); 
+
+  if (selectedPlantType !== null){
+
+  }
+}
+
+function plantSelectedPlant(){
+
 }
