@@ -13,7 +13,6 @@ It would somewhat be a recreation of a game I made on Scratch called "Blob Slaye
     - Movement
     - Ability to shoot enemies with a gun
 
-
 - Enemies
     - Wave-based system to spawn the enemies
         - Should have at least 3 waves to prove this system works
@@ -22,22 +21,18 @@ It would somewhat be a recreation of a game I made on Scratch called "Blob Slaye
         - More advance enemies with unique abilities
     - Ability to damage the player and knock them back, giving the player I-frames as well
 
-
 - Shop system
     - Multiple upgrades you can purchase to increase your strength
 
+- Custom sound effects/music
 
 ## Nice to have
 - Custom sprites/assets
-- Custom sound effects/music
-
 
 - Multiple gun types that can be purchased as cycled through
     - ex. shotgun, bombs, laser beam, etc.
 
-
 - More enemy types
     - Bosses maybe with complicated mechanics
-
 
 - Sort of rouge-like mechanics, with modifiers and upgrades to increase your strength or difficulty of enemies

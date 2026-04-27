@@ -1,265 +1,139 @@
-// Plants vs Zombies Recreation (Major Project)
+// Array and Object Notation
 // Steven Qiu
-// April 21, 2026
+// March 5, 2026
 //
 // Extra for Experts:
-// - describe what you did to take this project "above and beyond"
+// - 
 
-// Steps
-// 1. Build the Grid
-// 2. Build the shop and the ability to plant a peashooter
-// 3. Sun can fall from the sky
-// 4. Sunflower
-// 5. Zombie system
+let player;
 
-let visibleGrid;
-let cellSize;
-let gridStartingX;
-let gridStartingY;
+let bulletsArray = [];
 
-const COLUMNS = 9; // x
-const ROWS = 5; // y
-// tile colours
-const LIGHT_TILE = 0;
-let lightColour;
-const MEDIUM_TILE = 1;
-let mediumColour;
-const DARK_TILE = 2;
-let darkColour;
+class Player {
+  constructor(){
+    this.pos = createVector(width/2, height / 2);
+    this.dir = createVector(0, 0);
+    this.angle;
+    this.speed = 7;
+    this.size = 30;
 
-// grid that tracks where the plants are
-let plantGrid;
-const EMPTY_SPACE = 0;
-const SUNFLOWER_SPACE = 1;
-const PEASHOOTER_SPACE = 2;
+    this.colour = color(255);
+  }
 
-let plantsArray = [];
-let selectedPlantType = "null";
+  movement(){
+    if (keyIsDown(87) || keyIsDown(38)){ // up
+      this.dir.y = -1;
+    }
+    else if (keyIsDown(83) || keyIsDown(40)){ // down
+      this.dir.y = 1;
+    }
+    else {
+      this.dir.y = 0;
+    }
 
-let shopPackets = [];
-let sunAmount;
+    if (keyIsDown(65) || keyIsDown(37)){ // left
+      this.dir.x = -1;
+    }
+    else if (keyIsDown(68) || keyIsDown(39)){ // right
+      this.dir.x = 1;
+    }
+    else {
+      this.dir.x = 0;
+    }
 
+    this.dir.normalize();
+    this.dir.mult(this.speed);
 
+    this.pos.add(this.dir);
+  }
 
-class Plant {
-  constructor(_x, _y, _health, _type){
-    this.x = _x;
-    this.y = _y;
-    this.health = _health;
-    this.type = _type;
-
-    // other variables that don't need to be used yet tbh
-    this.fireRate;
+  containInBorder(){
+    if (this.pos.x < 0){
+      this.pos.x = 0;
+    }
+    if (this.pos.x > width){
+      this.pos.x = width;
+    }
+    if (this.pos.y < 0){
+      this.pos.y = 0;
+    }
+    if (this.pos.y > height){
+      this.pos.y = height;
+    }
   }
 
   display(){
-    stroke(100);
-    if (this.type === "sunflower"){
-      fill("yellow");
-    }
-    if (this.type === "peashooter"){
-      fill("green");
-    }
-    
+    push();
+    translate(this.pos.x, this.pos.y);
+    this.angle = atan2(mouseY - this.pos.y, mouseX - this.pos.x);
+    fill(this.colour);
+    rotate(this.angle);
     rectMode(CENTER);
-    rect(this.x * cellSize + gridStartingX + cellSize/2, this.y * cellSize + gridStartingY + cellSize/2, cellSize*0.5, cellSize*0.5);
+    square(0, 0, this.size);
+    pop();
   }
 }
 
-class Sunflower extends Plant {
-  constructor(_x, _y){
-    super(_x, _y, 15, "sunflower");
+class Bullet {
+  constructor(_x, _y, _angle){
+    this.pos = createVector(_x, _y);
+    this.angle = _angle;
+    this.speed = 20;
+    this.radius = 10;
+
+    this.colour = color("yellow");
+  }
+
+  display(){
+    noStroke();
+    fill(this.colour);
+    circle(this.pos.x, this.pos.y, this.radius);
+  }
+
+  movement(){
+
   }
 }
 
-class Peashooter extends Plant {
-  constructor(_x, _y){
-    super(_x, _y, 20, "peashooter");
+
+
+function setup(){
+  if (windowWidth > windowHeight){
+    createCanvas(windowHeight, windowHeight);
   }
-}
-
-
-
-function setup() {
-  createCanvas(windowWidth, windowHeight);
+  else if (windowWidth < windowHeight){
+    createCanvas(windowWidth, windowWidth);
+  }
+  // createCanvas(windowWidth, windowHeight);
   reset();
-  plantsArray.push(new Peashooter(2, 3));
-  plantsArray.push(new Sunflower(4, 2));
 }
 
 function reset(){
-  visibleGrid = generateGrid(ROWS, COLUMNS);
-  console.log(visibleGrid);
-
-  cellSize = height / 7;
-  if (cellSize * COLUMNS > width * 9/11){
-    cellSize = width/11;
-  }
-  gridStartingX = width/2 - cellSize*(COLUMNS / 2);
-  gridStartingY = height - cellSize*ROWS;
-
-  lightColour = color(255, 255, 255);
-  mediumColour = color(100, 100, 100);
-  darkColour = color(0, 0, 0);
+  player = new Player();
 }
 
-function draw() {
-  background(220);
+function draw(){
+  background(100);
 
-  displayGrid();
-  plantGrid = trackingPlantsOnGrid();
-
-  managePlants();
-  plantShop();
+  managePlayerFunctions();
+  manageBulletFunctions();
 }
 
 
 
-// Grid functions
-function generateGrid(yDimension, xDimension){
-  let newGrid = [];
-  let tileWasMedium = false;
-
-  for (let y = 0; y < yDimension; y++){
-    newGrid.push([]);
-    for (let x = 0; x < xDimension; x++){
-      if (y % 2 === 0){
-        if (!tileWasMedium){
-          newGrid[y].push(MEDIUM_TILE);
-        }
-        else if (tileWasMedium){
-          newGrid[y].push(DARK_TILE);
-        }
-      }
-      else {
-        if (!tileWasMedium){
-          newGrid[y].push(MEDIUM_TILE);
-        }
-        else if (tileWasMedium){
-          newGrid[y].push(LIGHT_TILE);
-        }
-      }
-      tileWasMedium = !tileWasMedium;
-    }
-  }
-  return newGrid;
+function managePlayerFunctions(){
+  player.display();
+  player.movement();
+  player.containInBorder();
 }
 
-function displayGrid(){
-  for (let _y = 0; _y < visibleGrid.length; _y++){
-    for (_x = 0; _x < visibleGrid[_y].length; _x++){
-      if (visibleGrid[_y][_x] === MEDIUM_TILE){
-        fill(mediumColour);
-      }
-      else if (visibleGrid[_y][_x] === LIGHT_TILE){
-        fill(lightColour);
-      }
-      else if (visibleGrid[_y][_x] === DARK_TILE){
-        fill(darkColour);
-      }
-      noStroke();
-      rectMode(CORNER);
-      square(_x * cellSize + gridStartingX, _y * cellSize + gridStartingY, cellSize);
-    }
+function manageBulletFunctions(){
+  for (let bullet = bulletsArray.length - 1; bullet >= 0; bullet--){
+    bullet.display();
+    bullet.movement();
   }
 }
 
-// 0 = empty
-// 1 = sunflower
-// 2 = peashooter
-
-// tracks the position of all plants on the grid
-function trackingPlantsOnGrid(){
-  let newGrid = [];
-  
-  // for (let _y = 0; _y < rows; _y++){
-  //   newGrid.push([]);
-
-  //   for (let _x = 0; _x < cols; _x++){
-  //     // is there a piece in this space
-  //     newGrid[_y].push(EMPTY_SPACE);
-
-  //     for (let piece of pieces){
-  //       if (_x === piece.x && _y === piece.y){
-  //         // which piece colour is it?
-  //         if (piece.team === "white"){
-  //           newGrid[_y][_x] = WHITE_IN_SPACE;
-  //         }
-  //         else if (piece.team === "black"){
-  //           newGrid[_y][_x] = BLACK_IN_SPACE;
-  //         }
-  //         break;
-  //       }
-  //     }
-  //   }
-  // }
-
-  for (let _y = 0; _y < ROWS; _y++){
-    newGrid.push([]);
-    for (let _x = 0; _x < COLUMNS; _x++){
-      newGrid[_y].push(EMPTY_SPACE);
-
-      for (let plant of plantsArray){
-        if (plant.x === _x && plant.y === _y){
-          if (plant.type === "sunflower"){
-            newGrid[_y][_x] = SUNFLOWER_SPACE;
-          }
-          if (plant.type === "peashooter"){
-            newGrid[_y][_x] = PEASHOOTER_SPACE;
-          }
-          
-        }
-      }
-    }
-  }
-
-  return newGrid;
-}
-
-
-
-function managePlants(){
-  for (let plant of plantsArray){
-    plant.display();
-  }
-}
-
-function plantShop(){
-  let shopHeight = cellSize * 1.7;
-  let shopWidth = cellSize * COLUMNS;
-
-  stroke(0);
-  rectMode(CORNER);
-  fill("brown");
-  rect(gridStartingX, 0, shopWidth, shopHeight);
-
-  let buttonWidth = shopWidth / 11;
-  let buttonHeight = shopHeight * 0.8;
-
-  // sun amount UI
-
-
-  // buttons to select the plants you want to buy
-
-  // peashooter
-  rectMode(CENTER);
-  fill("green");
-  rect(gridStartingX + 50, 50, buttonWidth, buttonHeight);
-  if (dist(mouseX, mouseY, gridStartingX + 50, 50) < 50){
-    selectedPlantType = "peashooter";
-  }
-
-}
-
-function mousePressed(){
-  let x = floor(mouseX - gridStartingX);
-  let y = floor(mouseY - gridStartingY); 
-
-  if (selectedPlantType !== null){
-
-  }
-}
-
-function plantSelectedPlant(){
+function manageZombieFunctions(){
 
 }
