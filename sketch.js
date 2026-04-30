@@ -24,7 +24,7 @@ class Player {
     this.size = 30;
 
     this.health = 10;
-    this.firingSpd = 100; // milli-seconds
+    this.firingSpd = 150; // milli-seconds
     this.lastTimeFiredBullet = 0;
 
     this.colour = color(255);
@@ -80,14 +80,40 @@ class Player {
     }
   }
 
-  // takeDamage()
+  takeDamage(){
+    for (let i = zombiesArray.length - 1; i >= 0; i--){
+      if (dist(zombiesArray[i].pos.x, zombiesArray[i].pos.y, this.pos.x, this.pos.y) < this.size * 0.9){
+        this.health -= zombiesArray[i].damage;
+        zombiesArray.splice(i, 1);
+        console.log(this.health);
+      }
+    }
+  }
+
+  isDead(){
+    if (this.health > 0){
+      return false;
+    }
+    else {
+      return true;
+    }
+  }
 }
+
+// takeDamage(){
+//     for (let i = playerBulletsArray.length - 1; i >= 0; i--){
+//       if (dist(playerBulletsArray[i].pos.x, playerBulletsArray[i].pos.y, this.pos.x, this.pos.y) < this.radius * 1.1){
+//         this.health -= playerBulletsArray[i].damage;
+//         playerBulletsArray.splice(i, 1);
+//       }
+//     }
+//   }
 
 class Bullet {
   constructor(_x, _y, _angle){
     this.pos = createVector(_x, _y);
     this.angle = _angle;
-    this.speed = 1;
+    this.speed = 10; // 10
     this.radius = 3;
     this.damage = 1;
 
@@ -115,22 +141,7 @@ class Bullet {
     }
     return isOffscreen;
   }
-
-  hasHitZombie(zombie){
-    if (dist(this.pos.x, this.pos.y, zombie.pos.x, zombie.pos.y) < zombie.radius){
-      return true;
-    }
-    return false;
-  }
 }
-// function hasShotZombie(zombieHit){
-// for (let i = 0; i < playerBullets.length; i++){
-//   if (dist(playerBullets[i].x, playerBullets[i].y, zombieHit.x, zombieHit.y) < zombieHit.size * 0.8){
-//     playerBullets.splice(i, 1);
-//     return true;
-//   }
-// }
-// return false;
 
 class Enemy {
   constructor(_enemyType, _radius, _spd, _health, _damage, _bounty, _fillColour, _strokeColour){
@@ -141,6 +152,7 @@ class Enemy {
     this.type = _enemyType;
     this.speed = _spd;
     this.health = _health;
+    this.damage = _damage;
 
     this.fillColour = _fillColour;
     this.strokeColour = _strokeColour;
@@ -162,7 +174,6 @@ class Enemy {
   }
 
   display(){
-    // experimental, idk if tracking player position will work
     push();
     translate(this.pos.x, this.pos.y);
     this.angle = atan2(player.pos.y - this.pos.y, player.pos.x - this.pos.x);
@@ -178,43 +189,32 @@ class Enemy {
     this.pos.y += this.speed * sin(this.angle);
   }
 
-  // takeDamage(){
-  //   // for (let bullet of playerBulletsArray){
-  //   for (let bi = playerBulletsArray.length - 1; bi >= 0; bi--){
-  //     if (dist(playerBulletsArray[bi].pos.x, playerBulletsArray[bi].pos.y, this.pos.x, this.pos.y) < this.radius * 2){
-  //       playerBulletsArray.splice(bi, 1);
-  //       this.health -= playerBulletsArray[bi].damage;
-  //     }
-  //   }
-  // }
-
-  killZombie(){
-    if (this.health <= 0){
-      console.log("kill");
-      // zombiesArray.splice(this, 1);
-      return true;
-    }
-    else{
-      return false;
+  takeDamage(){
+    for (let i = playerBulletsArray.length - 1; i >= 0; i--){
+      if (dist(playerBulletsArray[i].pos.x, playerBulletsArray[i].pos.y, this.pos.x, this.pos.y) < this.radius * 1.1){
+        this.health -= playerBulletsArray[i].damage;
+        playerBulletsArray.splice(i, 1);
+      }
     }
   }
 
-  
-
+  killZombie(){
+    if (this.health <= 0){
+      let index = zombiesArray.indexOf(this);
+      zombiesArray.splice(index, 1);
+    }
+  }
 }
-
-
-//     if (hasShotZombie(zombies[i])){
-//       zombies[i].health -= 1;
-//       if (zombies[i].health <= 0){
-//         score += zombies[i].givenScore;
-//         zombies.splice(i, 1);
-//       }
-//     }
 
 class Normal extends Enemy {
   constructor(){
     super("normal", 15, 3, 3, 1, 15, color(100, 250, 100), "black");
+  }
+}
+
+class Fast extends Enemy {
+  constructor(){
+    super("fast", 12, 5, 2, 2, 20, color(255, 0, 0), "black");
   }
 }
 
@@ -233,6 +233,9 @@ function setup(){
 
 function reset(){
   player = new Player();
+  playerBulletsArray.splice(0);
+  zombiesArray.splice(0);
+  frameCount = 0;
 }
 
 
@@ -250,6 +253,11 @@ function managePlayerFunctions(){
   player.display();
   player.movement();
   player.shootBullets();
+  player.takeDamage();
+
+  if (player.isDead()){
+    reset();
+  }
 }
 
 function manageBulletFunctions(){
@@ -269,10 +277,6 @@ function manageZombieFunctions(){
     zombiesArray[i].movement();
     zombiesArray[i].takeDamage();
     zombiesArray[i].killZombie();
-
-    if (zombiesArray[i].killZombie()){
-      zombiesArray.splice(i, 1);
-    }
   }
 }
 
@@ -281,5 +285,8 @@ function manageZombieFunctions(){
 function zombieWaveSpawner(){
   if (frameCount % 90 === 0){
     zombiesArray.push(new Normal());
+  }
+  if (frameCount % 270 === 0){
+    zombiesArray.push(new Fast());
   }
 }
