@@ -15,6 +15,10 @@ let player;
 let playerBulletsArray = [];
 let zombiesArray = [];
 
+let wave = 0;
+let allZombiesDead = true;
+let zombiesFinishedSpawning = true;
+
 class Player {
   constructor(){
     this.pos = createVector(width/2, height / 2);
@@ -99,15 +103,6 @@ class Player {
     }
   }
 }
-
-// takeDamage(){
-//     for (let i = playerBulletsArray.length - 1; i >= 0; i--){
-//       if (dist(playerBulletsArray[i].pos.x, playerBulletsArray[i].pos.y, this.pos.x, this.pos.y) < this.radius * 1.1){
-//         this.health -= playerBulletsArray[i].damage;
-//         playerBulletsArray.splice(i, 1);
-//       }
-//     }
-//   }
 
 class Bullet {
   constructor(_x, _y, _angle){
@@ -218,6 +213,12 @@ class Fast extends Enemy {
   }
 }
 
+class Strong extends Enemy {
+  constructor(){
+    super("strong", 20, 2, 10, 5, 40, color(109, 36, 191), "black");
+  }
+}
+
 
 
 function setup(){
@@ -235,7 +236,7 @@ function reset(){
   player = new Player();
   playerBulletsArray.splice(0);
   zombiesArray.splice(0);
-  frameCount = 0;
+  frameCount = 1;
 }
 
 
@@ -248,6 +249,7 @@ function draw(){
 
   zombieWaveSpawner();
 }
+
 
 function managePlayerFunctions(){
   player.display();
@@ -280,7 +282,28 @@ function manageZombieFunctions(){
   }
 }
 
+// when activated/pressed, starts the wave
+function waveButton(){}
 
+// testing
+function zombieWave(_enemyType, _amount, _spawnInterval){ // spawnIntervals is in millis() 1sec = 1000
+  let lastSpawnTime = 0;
+  // spawn the amount, within the intervals
+  for (let i = 0; i < _amount; i++){
+    if (lastSpawnTime < millis() + _spawnInterval){
+
+
+
+    }
+  }
+}
+
+// experimental - could prolly be just put into zombieWave function
+function zombieTypeForWaveSpawn(_enemyType){
+  if (_enemyType === "normal"){
+    zombiesArray.push(new Normal());
+  }
+}
 
 function zombieWaveSpawner(){
   if (frameCount % 90 === 0){
@@ -289,4 +312,8 @@ function zombieWaveSpawner(){
   if (frameCount % 270 === 0){
     zombiesArray.push(new Fast());
   }
+  if (frameCount % 450 === 0 && frameCount > 1000){
+    zombiesArray.push(new Strong());
+  }
+  console.log(frameCount);
 }
