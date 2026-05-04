@@ -5,19 +5,19 @@
 // Extra for Experts:
 // - 
 
-// commit message from apr 4 2026 (not given yet)
-// finished on making zombies
-// working on being able to damage zombies with bullets
-
 
 let player;
 
 let playerBulletsArray = [];
 let zombiesArray = [];
 
-let wave = 0;
+let waveNum = 0;
 let allZombiesDead = true;
 let zombiesFinishedSpawning = true;
+let canBeginNextWave = true;
+let lastSpawnTime = 0;
+
+let startButton;
 
 class Player {
   constructor(){
@@ -221,6 +221,23 @@ class Strong extends Enemy {
 
 
 
+class WaveButton {
+  constructor(){
+    this.pos = createVector(width / 10, height / 10);
+    // this.radius = sqrt(sq(width) + sq(height)) / (2 * 20);
+    this.radius = 50;
+    this.colour = color(0, 0, 180);
+
+    this.canBeActivated = true; // unknown if this is needed
+  }
+
+  // newWave(){
+
+  // }
+}
+
+
+
 function setup(){
   if (windowWidth > windowHeight){
     createCanvas(windowHeight, windowHeight);
@@ -230,6 +247,8 @@ function setup(){
   }
   // createCanvas(windowWidth, windowHeight);
   reset();
+
+  spawnZombies("normal", 10, 1);
 }
 
 function reset(){
@@ -248,6 +267,8 @@ function draw(){
   managePlayerFunctions();
 
   zombieWaveSpawner();
+  zombieWaveButton();
+  isAllZombiesDead();
 }
 
 
@@ -282,18 +303,38 @@ function manageZombieFunctions(){
   }
 }
 
-// when activated/pressed, starts the wave
-function waveButton(){}
+function zombieWaveSpawner(){
+  // if (frameCount % 90 === 0){
+  //   zombiesArray.push(new Normal());
+  // }
+  // if (frameCount % 270 === 0){
+  //   zombiesArray.push(new Fast());
+  // }
+  // if (frameCount % 450 === 0 && frameCount > 1000){
+  //   zombiesArray.push(new Strong());
+  // }
+  // console.log(frameCount);
+
+
+
+  // if (!zombiesFinishedSpawning){
+  //   if (waveNum === 1){
+  //     spawnZombies("normal", 10, 0.7);
+  //     // zombiesFinishedSpawning = true;
+  //   }
+  // }
+}
 
 // testing
-function zombieWave(_enemyType, _amount, _spawnInterval){ // spawnIntervals is in millis() 1sec = 1000
-  let lastSpawnTime = 0;
+function spawnZombies(_enemyType, _amount, _spawnInterval){ // spawnIntervals is in millis() 1sec = 1000
+  // let lastSpawnTime = 0;
   // spawn the amount, within the intervals
+  let millisInterval = _spawnInterval * 1000;
   for (let i = 0; i < _amount; i++){
-    if (lastSpawnTime < millis() + _spawnInterval){
-
-
-
+    if (lastSpawnTime < millis() + millisInterval){
+      zombieTypeForWaveSpawn(_enemyType);
+      console.log("spawned: " + _enemyType);
+      lastSpawnTime = millis() + millisInterval;
     }
   }
 }
@@ -305,15 +346,30 @@ function zombieTypeForWaveSpawn(_enemyType){
   }
 }
 
-function zombieWaveSpawner(){
-  if (frameCount % 90 === 0){
-    zombiesArray.push(new Normal());
+function isAllZombiesDead(){
+  if (zombiesArray.length === 0){
+    allZombiesDead = true;
   }
-  if (frameCount % 270 === 0){
-    zombiesArray.push(new Fast());
+  else {
+    allZombiesDead = false;
   }
-  if (frameCount % 450 === 0 && frameCount > 1000){
-    zombiesArray.push(new Strong());
+}
+
+// this function can be removed and moved to the button class
+function newWave(){
+  canBeginNextWave = false;
+  zombiesFinishedSpawning = false;
+  waveNum += 1;
+  console.log("new wave");
+}
+
+function zombieWaveButton(){
+  if (canBeginNextWave){
+    if (keyIsDown(32)){ // space key pressed
+      newWave();
+    }
   }
-  console.log(frameCount);
+  else if (zombiesFinishedSpawning && allZombiesDead){
+    canBeginNextWave = true;
+  }
 }
