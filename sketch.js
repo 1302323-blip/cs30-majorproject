@@ -247,8 +247,6 @@ function setup(){
   }
   // createCanvas(windowWidth, windowHeight);
   reset();
-
-  spawnZombies("normal", 10, 1);
 }
 
 function reset(){
@@ -269,6 +267,9 @@ function draw(){
   zombieWaveSpawner();
   zombieWaveButton();
   isAllZombiesDead();
+
+  spawnZombies("normal", 10, 1000);
+  console.log(millis());
 }
 
 
@@ -329,14 +330,30 @@ function zombieWaveSpawner(){
 function spawnZombies(_enemyType, _amount, _spawnInterval){ // spawnIntervals is in millis() 1sec = 1000
   // let lastSpawnTime = 0;
   // spawn the amount, within the intervals
-  let millisInterval = _spawnInterval * 1000;
+  // let millisInterval = _spawnInterval * 1000;
+  // for (let i = 0; i < _amount; i++){
+  //   if (lastSpawnTime < millis() + millisInterval){
+  //     zombieTypeForWaveSpawn(_enemyType);
+  //     console.log("spawned: " + _enemyType);
+  //     console.log("lastSpawnTIme: " + lastSpawnTime);
+  //     console.log("millis: " + millis());
+  //     lastSpawnTime = millis() + millisInterval;
+  //   }
+  // }
+
+  // the for loop is being called all at once, not caring about waiting or anything like that
   for (let i = 0; i < _amount; i++){
-    if (lastSpawnTime < millis() + millisInterval){
+    if (millis() > lastSpawnTime + _spawnInterval){
       zombieTypeForWaveSpawn(_enemyType);
       console.log("spawned: " + _enemyType);
-      lastSpawnTime = millis() + millisInterval;
+      console.log("lastSpawnTIme: " + lastSpawnTime);
+      console.log("millis: " + millis());
+      lastSpawnTime = millis();
     }
   }
+
+  // let counter = 0;
+  // if (millis() > )
 }
 
 // experimental - could prolly be just put into zombieWave function
