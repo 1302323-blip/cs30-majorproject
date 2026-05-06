@@ -12,11 +12,15 @@ let playerBulletsArray = [];
 let zombiesArray = [];
 
 let waveNum = 0;
+let miniWave = 0;
+let miniWaveCounter = 0;
+
 let allZombiesDead = true;
 let zombiesFinishedSpawning = true;
 let canBeginNextWave = true;
 let lastSpawnTime = 0;
 
+// this will probably not be needed
 let startButton;
 
 class Player {
@@ -220,7 +224,7 @@ class Strong extends Enemy {
 }
 
 
-
+// will likely just use keybind to start new waves
 class WaveButton {
   constructor(){
     this.pos = createVector(width / 10, height / 10);
@@ -264,12 +268,9 @@ function draw(){
   manageZombieFunctions();
   managePlayerFunctions();
 
-  zombieWaveSpawner();
+  zombieWaveManager();
   zombieWaveButton();
   isAllZombiesDead();
-
-  spawnZombies("normal", 10, 1000);
-  console.log(millis());
 }
 
 
@@ -304,65 +305,47 @@ function manageZombieFunctions(){
   }
 }
 
-function zombieWaveSpawner(){
-  // if (frameCount % 90 === 0){
-  //   zombiesArray.push(new Normal());
-  // }
-  // if (frameCount % 270 === 0){
-  //   zombiesArray.push(new Fast());
-  // }
-  // if (frameCount % 450 === 0 && frameCount > 1000){
-  //   zombiesArray.push(new Strong());
-  // }
-  // console.log(frameCount);
 
 
-
-  // if (!zombiesFinishedSpawning){
-  //   if (waveNum === 1){
-  //     spawnZombies("normal", 10, 0.7);
-  //     // zombiesFinishedSpawning = true;
-  //   }
-  // }
-}
-
-// testing
-function spawnZombies(_enemyType, _amount, _spawnInterval){ // spawnIntervals is in millis() 1sec = 1000
-  // let lastSpawnTime = 0;
-  // spawn the amount, within the intervals
-  // let millisInterval = _spawnInterval * 1000;
-  // for (let i = 0; i < _amount; i++){
-  //   if (lastSpawnTime < millis() + millisInterval){
-  //     zombieTypeForWaveSpawn(_enemyType);
-  //     console.log("spawned: " + _enemyType);
-  //     console.log("lastSpawnTIme: " + lastSpawnTime);
-  //     console.log("millis: " + millis());
-  //     lastSpawnTime = millis() + millisInterval;
-  //   }
-  // }
-
-  // the for loop is being called all at once, not caring about waiting or anything like that
-  for (let i = 0; i < _amount; i++){
-    if (millis() > lastSpawnTime + _spawnInterval){
-      zombieTypeForWaveSpawn(_enemyType);
-      console.log("spawned: " + _enemyType);
-      console.log("lastSpawnTIme: " + lastSpawnTime);
-      console.log("millis: " + millis());
-      lastSpawnTime = millis();
+function zombieWaveManager(){
+  if (waveNum === 1){
+    if (miniWave === 1){
+      spawnZombies("normal", 5, 1000);
+    }
+    else if (miniWave === 2){
+      spawnZombies("fast", 5, 1000);
+    }
+    else {
+      zombiesFinishedSpawning = true;
     }
   }
-
-  // let counter = 0;
-  // if (millis() > )
 }
 
-// experimental - could prolly be just put into zombieWave function
-function zombieTypeForWaveSpawn(_enemyType){
+// spawns zombies in each miniWave, determining amount and intervals between each spawn
+function spawnZombies(_enemyType, _amount, _spawnInterval){ // spawnIntervals is in millis() 1000 = 1sec interval
+  if (millis() > lastSpawnTime + _spawnInterval){
+    zombieTypeToSpawn(_enemyType);
+    lastSpawnTime = millis();
+    miniWaveCounter += 1;
+  }
+  if (miniWaveCounter === _amount){
+    miniWave += 1;
+    miniWaveCounter = 0;
+    console.log("miniWave: " + miniWave);
+  }
+}
+
+// organization function - used to spawn specific type of enemy called in spawnZomibes()
+function zombieTypeToSpawn(_enemyType){
   if (_enemyType === "normal"){
     zombiesArray.push(new Normal());
   }
+  if (_enemyType === "fast"){
+    zombiesArray.push(new Fast());
+  }
 }
 
+// tracks if all zombies are dead, to see if a new wave can be started
 function isAllZombiesDead(){
   if (zombiesArray.length === 0){
     allZombiesDead = true;
@@ -377,9 +360,12 @@ function newWave(){
   canBeginNextWave = false;
   zombiesFinishedSpawning = false;
   waveNum += 1;
+  miniWave = 1;
   console.log("new wave");
+  console.log("wave: " + waveNum);
 }
 
+//
 function zombieWaveButton(){
   if (canBeginNextWave){
     if (keyIsDown(32)){ // space key pressed
@@ -388,5 +374,7 @@ function zombieWaveButton(){
   }
   else if (zombiesFinishedSpawning && allZombiesDead){
     canBeginNextWave = true;
+    miniWave = 0;
+    console.log("finished wave");
   }
 }
