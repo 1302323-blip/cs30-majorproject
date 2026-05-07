@@ -10,18 +10,20 @@ let player;
 
 let playerBulletsArray = [];
 let zombiesArray = [];
+// let zombieProjectileArray = [];
 
 let waveNum = 0;
 let miniWave = 0;
-let miniWaveCounter = 0;
-
+let enemySpawnedCounter = 0;
 let allZombiesDead = true;
 let zombiesFinishedSpawning = true;
 let canBeginNextWave = true;
 let lastSpawnTime = 0;
 
-// this will probably not be needed
-let startButton;
+let shopUpgrades;
+let isShopOpen = false;
+
+
 
 class Player {
   constructor(){
@@ -31,9 +33,12 @@ class Player {
     this.speed = 7;
     this.size = 30;
 
-    this.health = 10;
+    this.maxHealth = 10;
+    this.health = this.maxHealth;
     this.firingSpd = 150; // milli-seconds
     this.lastTimeFiredBullet = 0;
+    // experimenting
+    this.bulletDamage = 1;
 
     this.colour = color(255);
   }
@@ -84,7 +89,7 @@ class Player {
   shootBullets(){
     if (mouseIsPressed && this.lastTimeFiredBullet < millis()){
       this.lastTimeFiredBullet = millis() + this.firingSpd;
-      playerBulletsArray.push(new Bullet(this.pos.x, this.pos.y, this.angle));
+      playerBulletsArray.push(new Bullet(this.pos.x, this.pos.y, this.angle, this.bulletDamage));
     }
   }
 
@@ -109,12 +114,13 @@ class Player {
 }
 
 class Bullet {
-  constructor(_x, _y, _angle){
+  // experimenting with constructor
+  constructor(_x, _y, _angle, _damage){
     this.pos = createVector(_x, _y);
     this.angle = _angle;
     this.speed = 10; // 10
     this.radius = 3;
-    this.damage = 1;
+    this.damage = _damage;
 
     this.colour = color("yellow");
   }
@@ -223,23 +229,35 @@ class Strong extends Enemy {
   }
 }
 
+// class Shooter extends Enemy {
+//   constructor(){
+//     super("shooter", 15, 2, 3, 1, 15, "blue", "black");
+//   }
 
-// will likely just use keybind to start new waves
-class WaveButton {
-  constructor(){
-    this.pos = createVector(width / 10, height / 10);
-    // this.radius = sqrt(sq(width) + sq(height)) / (2 * 20);
-    this.radius = 50;
-    this.colour = color(0, 0, 180);
+//   shoot(){
 
-    this.canBeActivated = true; // unknown if this is needed
+//   }
+// }
+
+// class EnemyProjectile {
+//   constructor(_x, _y){
+
+//   }
+// }
+
+class ShopUpgradeFunctions {
+  increaseMaxHealth(_increaseAmount){
+    player.maxHealth += _increaseAmount;
+    player.health = player.maxHealth;
+    console.log("maxHealth: " + player.maxHealth);
+    console.log("health: " + player.health);
   }
 
-  // newWave(){
-
-  // }
+  increaseBulletDamage(_increaseAmount){
+    player.bulletDamage += _increaseAmount;
+    console.log("bullet: " + player.bulletDamage);
+  }
 }
-
 
 
 function setup(){
@@ -257,17 +275,20 @@ function reset(){
   player = new Player();
   playerBulletsArray.splice(0);
   zombiesArray.splice(0);
-  frameCount = 1;
+
+  shopUpgrades = new ShopUpgradeFunctions();
 }
 
 
 function draw(){
   background(100);
 
+  // class management
   manageBulletFunctions();
   manageZombieFunctions();
   managePlayerFunctions();
 
+  // zombie wave management
   zombieWaveManager();
   zombieWaveButton();
   isAllZombiesDead();
@@ -308,30 +329,35 @@ function manageZombieFunctions(){
 
 
 function zombieWaveManager(){
+  // intervals are written in seconds
   if (waveNum === 1){
-    if (miniWave === 1){
-      spawnZombies("normal", 5, 1000);
-    }
-    else if (miniWave === 2){
-      spawnZombies("fast", 5, 1000);
-    }
-    else {
-      zombiesFinishedSpawning = true;
-    }
+    spawnZombies("normal", 5, 1, 1);
+    spawnZombies("fast", 5, 1, 2);
+    areAllZombiesSpawned(2);
+  }
+  if (waveNum === 2){
+    spawnZombies("fast", 7, 0.5, 1);
+    spawnZombies("strong", 3, 2, 2);
+    areAllZombiesSpawned(2);
   }
 }
 
+
 // spawns zombies in each miniWave, determining amount and intervals between each spawn
-function spawnZombies(_enemyType, _amount, _spawnInterval){ // spawnIntervals is in millis() 1000 = 1sec interval
-  if (millis() > lastSpawnTime + _spawnInterval){
-    zombieTypeToSpawn(_enemyType);
-    lastSpawnTime = millis();
-    miniWaveCounter += 1;
-  }
-  if (miniWaveCounter === _amount){
-    miniWave += 1;
-    miniWaveCounter = 0;
-    console.log("miniWave: " + miniWave);
+function spawnZombies(_enemyType, _amount, _spawnInterval, _miniWaveNum){
+  // sets _spawnInterval to millis() to make if statements work
+  _spawnInterval *= 1000;
+  if (miniWave === _miniWaveNum){
+    if (millis() > lastSpawnTime + _spawnInterval){
+      zombieTypeToSpawn(_enemyType);
+      lastSpawnTime = millis();
+      enemySpawnedCounter += 1;
+    }
+    if (enemySpawnedCounter === _amount){
+      miniWave += 1;
+      enemySpawnedCounter = 0;
+      console.log("miniWave: " + miniWave);
+    }
   }
 }
 
@@ -342,6 +368,22 @@ function zombieTypeToSpawn(_enemyType){
   }
   if (_enemyType === "fast"){
     zombiesArray.push(new Fast());
+  }
+  if (_enemyType === "strong"){
+    zombiesArray.push(new Strong());
+  }
+  
+  // template for new enemy spawns for function
+  // if (_enemyType === "_"){
+  //   zombiesArray.push(new _());
+  // }
+}
+
+// tracks if all zombies part of a whole wave have been spawned
+// organization function
+function areAllZombiesSpawned(_finalMiniWave){
+  if (miniWave === _finalMiniWave + 1){
+    zombiesFinishedSpawning = true;
   }
 }
 
@@ -363,9 +405,11 @@ function newWave(){
   miniWave = 1;
   console.log("new wave");
   console.log("wave: " + waveNum);
+  console.log("miniWave: " + miniWave);
 }
 
-//
+
+// when keybind pressed, start the wave
 function zombieWaveButton(){
   if (canBeginNextWave){
     if (keyIsDown(32)){ // space key pressed
@@ -378,3 +422,22 @@ function zombieWaveButton(){
     console.log("finished wave");
   }
 }
+
+
+// controls ability to buy shop upgrades using keybinds
+function keyReleased(){
+  if (key === "y"){
+    shopUpgrades.increaseMaxHealth(1);
+  }
+  else if (key === "u"){
+    shopUpgrades.increaseBulletDamage(1);
+  }
+}
+
+// experimenting with shop buttons
+// function increaseMaxHealth(){
+//   player.maxHealth += 1;
+//   player.health = player.maxHealth;
+//   console.log(player.maxHealth);
+//   console.log(player.health);
+// }
