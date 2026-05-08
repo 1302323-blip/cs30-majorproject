@@ -22,6 +22,7 @@ let lastSpawnTime = 0;
 
 let shopUpgrades;
 let isShopOpen = false;
+let playerCash;
 
 
 
@@ -32,15 +33,18 @@ class Player {
     this.angle;
     this.speed = 7;
     this.size = 30;
+    this.colour = color(255);
 
     this.maxHealth = 10;
     this.health = this.maxHealth;
     this.firingSpd = 150; // milli-seconds
     this.lastTimeFiredBullet = 0;
-    // experimenting
     this.bulletDamage = 1;
-
-    this.colour = color(255);
+    
+    this.iFramesLength = 1000; // milli-seconds
+    this.isInIFrames = false;
+    this.lastTookDamage = 0;
+    this.knockBackSpd = 10;
   }
 
   movement(){
@@ -94,12 +98,33 @@ class Player {
   }
 
   takeDamage(){
-    for (let i = zombiesArray.length - 1; i >= 0; i--){
-      if (dist(zombiesArray[i].pos.x, zombiesArray[i].pos.y, this.pos.x, this.pos.y) < this.size * 0.9){
-        this.health -= zombiesArray[i].damage;
-        zombiesArray.splice(i, 1);
-        console.log(this.health);
+    if (!this.isInIFrames){
+      for (let i = zombiesArray.length - 1; i >= 0; i--){
+        if (dist(zombiesArray[i].pos.x, zombiesArray[i].pos.y, this.pos.x, this.pos.y) < this.size * 0.9){
+          this.health -= zombiesArray[i].damage;
+          
+          this.knockBack(zombiesArray[i].angle);
+          this.isInIFrames = true;
+          this.lastTookDamage = millis();
+          
+          zombiesArray.splice(i, 1);
+          console.log(this.health);
+        }
       }
+    }
+    else {
+      if (millis() >= this.lastTookDamage + this.iFramesLength){
+        this.isInIFrames = false;
+      }
+    }
+  }
+
+  // experimenting, want it to be smoother;
+  knockBack(_angle){
+    let knockBackTime = 30;
+    for (let i = 0; i < knockBackTime; i++){
+      this.pos.x += this.knockBackSpd * cos(_angle);
+      this.pos.y += this.knockBackSpd * sin(_angle);
     }
   }
 
@@ -114,7 +139,6 @@ class Player {
 }
 
 class Bullet {
-  // experimenting with constructor
   constructor(_x, _y, _angle, _damage){
     this.pos = createVector(_x, _y);
     this.angle = _angle;
@@ -158,6 +182,7 @@ class Enemy {
     this.speed = _spd;
     this.health = _health;
     this.damage = _damage;
+    this.bounty = _bounty;
 
     this.fillColour = _fillColour;
     this.strokeColour = _strokeColour;
@@ -206,6 +231,7 @@ class Enemy {
   killZombie(){
     if (this.health <= 0){
       let index = zombiesArray.indexOf(this);
+      playerCash += this.bounty;
       zombiesArray.splice(index, 1);
     }
   }
@@ -246,16 +272,24 @@ class Strong extends Enemy {
 // }
 
 class ShopUpgradeFunctions {
-  increaseMaxHealth(_increaseAmount){
-    player.maxHealth += _increaseAmount;
-    player.health = player.maxHealth;
-    console.log("maxHealth: " + player.maxHealth);
-    console.log("health: " + player.health);
+  increaseMaxHealth(_increaseAmount, _cost){
+    if (playerCash >= _cost){
+      player.maxHealth += _increaseAmount;
+      player.health = player.maxHealth;
+      console.log("maxHealth: " + player.maxHealth);
+      console.log("health: " + player.health);
+
+      playerCash -= _cost;
+    }
   }
 
-  increaseBulletDamage(_increaseAmount){
-    player.bulletDamage += _increaseAmount;
-    console.log("bullet: " + player.bulletDamage);
+  increaseBulletDamage(_increaseAmount, _cost){
+    if (playerCash >= _cost){
+      player.bulletDamage += _increaseAmount;
+      console.log("bulletDamage: " + player.bulletDamage);
+
+      playerCash -= _cost;
+    }
   }
 }
 
@@ -267,7 +301,6 @@ function setup(){
   else if (windowWidth < windowHeight){
     createCanvas(windowWidth, windowWidth);
   }
-  // createCanvas(windowWidth, windowHeight);
   reset();
 }
 
@@ -277,6 +310,11 @@ function reset(){
   zombiesArray.splice(0);
 
   shopUpgrades = new ShopUpgradeFunctions();
+  playerCash = 0;
+
+  waveNum = 0;
+  miniWave = 0;
+  enemySpawnedCounter = 0;
 }
 
 
@@ -292,6 +330,9 @@ function draw(){
   zombieWaveManager();
   zombieWaveButton();
   isAllZombiesDead();
+
+  // debug; delete once project finished
+  debugText();
 }
 
 
@@ -427,10 +468,12 @@ function zombieWaveButton(){
 // controls ability to buy shop upgrades using keybinds
 function keyReleased(){
   if (key === "y"){
-    shopUpgrades.increaseMaxHealth(1);
+    shopUpgrades.increaseMaxHealth(1, 100);
+    console.log("Cash: " + playerCash);
   }
   else if (key === "u"){
-    shopUpgrades.increaseBulletDamage(1);
+    shopUpgrades.increaseBulletDamage(1, 100);
+    console.log("Cash: " + playerCash);
   }
 }
 
@@ -441,3 +484,16 @@ function keyReleased(){
 //   console.log(player.maxHealth);
 //   console.log(player.health);
 // }
+
+
+
+// used purely for debugging; delete once project is finished
+function debugText(){
+  if (player.isInIFrames){
+    fill("yellow");
+  }
+  else{
+    fill("white");
+  }
+  text("Iframes: " + player.isInIFrames, 50, 50);
+}
