@@ -20,8 +20,8 @@ let zombiesFinishedSpawning = true;
 let canBeginNextWave = true;
 let lastSpawnTime = 0;
 
-let shopUpgrades;
-let isShopOpen = false;
+let upgradesShop;
+// let isShopOpen = false;
 let playerCash;
 
 
@@ -44,24 +44,25 @@ class Player {
     this.iFramesLength = 1000; // milli-seconds
     this.isInIFrames = false;
     this.lastTookDamage = 0;
-    this.knockBackSpd = 10;
+    this.knockBackSpd = 15;
+    this.knockBackAngle;
   }
 
   movement(){
-    if (keyIsDown(87) || keyIsDown(38)){ // up
+    if (keyIsDown(87)){ // up || keyIsDown(38)
       this.dir.y = -1;
     }
-    else if (keyIsDown(83) || keyIsDown(40)){ // down
+    else if (keyIsDown(83)){ // down || keyIsDown(40)
       this.dir.y = 1;
     }
     else {
       this.dir.y = 0;
     }
 
-    if (keyIsDown(65) || keyIsDown(37)){ // left
+    if (keyIsDown(65)){ // left || keyIsDown(37)
       this.dir.x = -1;
     }
-    else if (keyIsDown(68) || keyIsDown(39)){ // right
+    else if (keyIsDown(68)){ // right || keyIsDown(39)
       this.dir.x = 1;
     }
     else {
@@ -103,7 +104,7 @@ class Player {
         if (dist(zombiesArray[i].pos.x, zombiesArray[i].pos.y, this.pos.x, this.pos.y) < this.size * 0.9){
           this.health -= zombiesArray[i].damage;
           
-          this.knockBack(zombiesArray[i].angle);
+          this.knockBackAngle = zombiesArray[i].angle;
           this.isInIFrames = true;
           this.lastTookDamage = millis();
           
@@ -113,21 +114,25 @@ class Player {
       }
     }
     else {
+      this.knockBack(this.knockBackAngle);
+
       if (millis() >= this.lastTookDamage + this.iFramesLength){
         this.isInIFrames = false;
       }
     }
   }
 
-  // experimenting, want it to be smoother;
+  // knocks player back when they get hit by an enemy
   knockBack(_angle){
-    let knockBackTime = 30;
-    for (let i = 0; i < knockBackTime; i++){
-      this.pos.x += this.knockBackSpd * cos(_angle);
-      this.pos.y += this.knockBackSpd * sin(_angle);
+    let knockBackDuration = this.iFramesLength * 0.1;
+
+    if (millis() <= this.lastTookDamage + knockBackDuration){
+      this.pos.x += this.knockBackSpd * cos(this.knockBackAngle);
+      this.pos.y += this.knockBackSpd * sin(this.knockBackAngle);
     }
   }
 
+  // check if player has no health left
   isDead(){
     if (this.health > 0){
       return false;
@@ -271,7 +276,38 @@ class Strong extends Enemy {
 //   }
 // }
 
-class ShopUpgradeFunctions {
+
+
+class UpgradesShop {
+  constructor(){
+    this.isOpened = false;
+
+    // display shop stuff for when it isn't opened
+    this.currentRadius;
+    this.intermissionRadius = width / 8;
+    this.duringWaveRadius = width / 8;
+  }
+
+  display(){
+    if (!this.isOpened){
+      stroke("black");
+      fill(170);
+      circle(width/2, 0, this.currentRadius);
+    }
+    else if (this.isOpened){
+
+    }
+  }
+
+  update(){
+    if (canBeginNextWave){
+      this.currentRadius = this.intermissionRadius;
+    }
+    else{
+      this.currentRadius = this.duringWaveRadius;
+    }
+  }
+
   increaseMaxHealth(_increaseAmount, _cost){
     if (playerCash >= _cost){
       player.maxHealth += _increaseAmount;
@@ -309,7 +345,7 @@ function reset(){
   playerBulletsArray.splice(0);
   zombiesArray.splice(0);
 
-  shopUpgrades = new ShopUpgradeFunctions();
+  upgradesShop = new UpgradesShop();
   playerCash = 0;
 
   waveNum = 0;
@@ -325,6 +361,7 @@ function draw(){
   manageBulletFunctions();
   manageZombieFunctions();
   managePlayerFunctions();
+  manageShopFunctions();
 
   // zombie wave management
   zombieWaveManager();
@@ -447,6 +484,8 @@ function newWave(){
   console.log("new wave");
   console.log("wave: " + waveNum);
   console.log("miniWave: " + miniWave);
+
+  upgradesShop.isOpened = false;
 }
 
 
@@ -465,25 +504,30 @@ function zombieWaveButton(){
 }
 
 
-// controls ability to buy shop upgrades using keybinds
-function keyReleased(){
-  if (key === "y"){
-    shopUpgrades.increaseMaxHealth(1, 100);
-    console.log("Cash: " + playerCash);
-  }
-  else if (key === "u"){
-    shopUpgrades.increaseBulletDamage(1, 100);
-    console.log("Cash: " + playerCash);
-  }
+function manageShopFunctions(){
+  upgradesShop.display();
+  upgradesShop.update();
 }
 
-// experimenting with shop buttons
-// function increaseMaxHealth(){
-//   player.maxHealth += 1;
-//   player.health = player.maxHealth;
-//   console.log(player.maxHealth);
-//   console.log(player.health);
-// }
+// controls ability to buy shop upgrades using keybinds
+function keyReleased(){
+  // pressing tab opens the shop
+  if (key === "t" && canBeginNextWave){
+    upgradesShop.isOpened = !upgradesShop.isOpened;
+    console.log("shopOpened?: " + upgradesShop.isOpened);
+  }
+
+  if (upgradesShop.isOpened){
+    if (key === "y"){
+      upgradesShop.increaseMaxHealth(1, 100);
+      console.log("Cash: " + playerCash);
+    }
+    else if (key === "u"){
+      upgradesShop.increaseBulletDamage(1, 100);
+      console.log("Cash: " + playerCash);
+    }
+  }
+}
 
 
 
