@@ -283,39 +283,84 @@ class UpgradesShop {
     this.isOpened = false;
 
     // display shop stuff for when it isn't opened
+    this.openShopButtonPos = createVector(width / 2, 0);
+    this.openShopButtonColour = color(170, 170, 170, 255);
+
     this.currentRadius;
-    this.intermissionRadius = width / 8;
-    this.duringWaveRadius = width / 8;
+    this.intermissionRadius = width / 16;
+    this.duringWaveRadius = width / 24;
+
+    // display stuff for ui when the shop IS opened
+    this.shopBGPos = createVector(width / 2, this.openShopButtonPos.y / 2);
+    this.shopBGColour = color(170, 170, 170, 50);
+
+    this.page = 1;
+    this.maxPage = 1;
+
+    // shop costs, upgrade lvs, increase values
+    this.healthLv = 0;
+    this.healthCost = 100;
+    this.healthIncreaseAmount = 1;
+    
+    this.bulletDmgLv = 0;
+    this.bulletDmgCost = 100;
   }
 
   display(){
-    if (!this.isOpened){
-      stroke("black");
-      fill(170);
-      circle(width/2, 0, this.currentRadius);
-    }
-    else if (this.isOpened){
+    stroke("black");
+    fill(this.openShopButtonColour);
+    // circle(this.openShopButtonPos.x, this.openShopButtonPos.y, this.currentRadius);
+    arc(this.openShopButtonPos.x, this.openShopButtonPos.y, this.currentRadius * 2, this.currentRadius * 2, 0, PI);
 
-    }
-  }
-
-  update(){
     if (canBeginNextWave){
-      this.currentRadius = this.intermissionRadius;
+      if (!this.isOpened){
+        this.currentRadius = this.intermissionRadius;
+        this.openShopButtonPos.y = 0;
+      }
+      else if (this.isOpened){
+        this.currentRadius = this.intermissionRadius;
+        this.openShopButtonPos.y = height / 3;
+
+        // draws BG of shop
+        let cornerRadius = 20;
+        fill(this.shopBGColour);
+        rectMode(CENTER);
+        rect(this.shopBGPos.x, this.shopBGPos.y, width * 3/5, height / 1.5, cornerRadius);
+
+        this.displayTextUI();
+      }
+      
     }
     else{
       this.currentRadius = this.duringWaveRadius;
+      this.openShopButtonPos.y = -this.currentRadius / 4;
     }
   }
 
-  increaseMaxHealth(_increaseAmount, _cost){
-    if (playerCash >= _cost){
+  displayTextUI(){
+    textSize(12);
+    textStyle(BOLD);
+    fill("black");
+    let textPos1 = createVector(width / 4, this.shopBGPos.x / 16);
+
+    // max health increase
+    text("INCREASE MAX HEALTH (Y)", textPos1.x, textPos1.y);
+    text("COST: " + this.healthCost + "   LV: " + this.healthLv, textPos1.x, textPos1.y + 12);
+
+    // increase movement spd
+
+  }
+
+  increaseMaxHealth(_increaseAmount){
+    if (playerCash >= this.healthCost){
       player.maxHealth += _increaseAmount;
       player.health = player.maxHealth;
       console.log("maxHealth: " + player.maxHealth);
       console.log("health: " + player.health);
 
-      playerCash -= _cost;
+      this.healthLv += 1;
+      this.healthCost += 100;
+      playerCash -= this.healthCost;
     }
   }
 
@@ -327,7 +372,16 @@ class UpgradesShop {
       playerCash -= _cost;
     }
   }
+
+  // updates costs + increase values of upgrades depending which level your at
+  updateUpgradeValues(){
+    // max health increase
+
+  }
 }
+
+
+
 
 
 function setup(){
@@ -346,7 +400,7 @@ function reset(){
   zombiesArray.splice(0);
 
   upgradesShop = new UpgradesShop();
-  playerCash = 0;
+  playerCash = 100000;
 
   waveNum = 0;
   miniWave = 0;
@@ -358,10 +412,11 @@ function draw(){
   background(100);
 
   // class management
+  manageShopFunctions();
   manageBulletFunctions();
   manageZombieFunctions();
   managePlayerFunctions();
-  manageShopFunctions();
+  
 
   // zombie wave management
   zombieWaveManager();
@@ -475,7 +530,7 @@ function isAllZombiesDead(){
   }
 }
 
-// this function can be removed and moved to the button class
+// when called, starts the next wave
 function newWave(){
   canBeginNextWave = false;
   zombiesFinishedSpawning = false;
@@ -506,20 +561,21 @@ function zombieWaveButton(){
 
 function manageShopFunctions(){
   upgradesShop.display();
-  upgradesShop.update();
 }
 
-// controls ability to buy shop upgrades using keybinds
+// controls navigation + purchases in shop using keybinds
 function keyReleased(){
-  // pressing tab opens the shop
+  // pressing t opens the shop
   if (key === "t" && canBeginNextWave){
     upgradesShop.isOpened = !upgradesShop.isOpened;
+    upgradesShop.page = 1;
     console.log("shopOpened?: " + upgradesShop.isOpened);
   }
 
+  // allows you to purchase upgrades when the shop is opened
   if (upgradesShop.isOpened){
     if (key === "y"){
-      upgradesShop.increaseMaxHealth(1, 100);
+      upgradesShop.increaseMaxHealth(1);
       console.log("Cash: " + playerCash);
     }
     else if (key === "u"){
@@ -533,6 +589,7 @@ function keyReleased(){
 
 // used purely for debugging; delete once project is finished
 function debugText(){
+  textSize(10);
   if (player.isInIFrames){
     fill("yellow");
   }
