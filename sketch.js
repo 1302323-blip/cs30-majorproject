@@ -31,13 +31,13 @@ class Player {
     this.pos = createVector(width/2, height / 2);
     this.dir = createVector(0, 0);
     this.angle;
-    this.speed = 7;
+    this.speed = 7; //7
     this.size = 30;
     this.colour = color(255);
 
     this.maxHealth = 10;
     this.health = this.maxHealth;
-    this.firingSpd = 150; // milli-seconds
+    this.bulletFiringSpd = 150; // milli-seconds (150)
     this.lastTimeFiredBullet = 0;
     this.bulletDamage = 1;
     
@@ -93,23 +93,17 @@ class Player {
 
   shootBullets(){
     if (mouseIsPressed && this.lastTimeFiredBullet < millis()){
-      this.lastTimeFiredBullet = millis() + this.firingSpd;
+      this.lastTimeFiredBullet = millis() + this.bulletFiringSpd;
       playerBulletsArray.push(new Bullet(this.pos.x, this.pos.y, this.angle, this.bulletDamage));
     }
   }
 
-  takeDamage(){
+  collideWithZombie(){
     if (!this.isInIFrames){
       for (let i = zombiesArray.length - 1; i >= 0; i--){
         if (dist(zombiesArray[i].pos.x, zombiesArray[i].pos.y, this.pos.x, this.pos.y) < this.size * 0.9){
-          this.health -= zombiesArray[i].damage;
-          
-          this.knockBackAngle = zombiesArray[i].angle;
-          this.isInIFrames = true;
-          this.lastTookDamage = millis();
-          
+          this.takeDamage(zombiesArray[i].damage, zombiesArray[i].angle);
           zombiesArray.splice(i, 1);
-          console.log(this.health);
         }
       }
     }
@@ -120,6 +114,38 @@ class Player {
         this.isInIFrames = false;
       }
     }
+  }
+
+  takeDamage(_damage, _angle){
+    // if (!this.isInIFrames){
+    //   for (let i = zombiesArray.length - 1; i >= 0; i--){
+    //     if (dist(zombiesArray[i].pos.x, zombiesArray[i].pos.y, this.pos.x, this.pos.y) < this.size * 0.9){
+    //       this.health -= zombiesArray[i].damage;
+          
+    //       this.knockBackAngle = zombiesArray[i].angle;
+    //       this.isInIFrames = true;
+    //       this.lastTookDamage = millis();
+          
+    //       zombiesArray.splice(i, 1);
+    //       console.log(this.health);
+    //     }
+    //   }
+    // }
+    // else {
+    //   this.knockBack(this.knockBackAngle);
+
+    //   if (millis() >= this.lastTookDamage + this.iFramesLength){
+    //     this.isInIFrames = false;
+    //   }
+    // }
+
+    this.health -= _damage;
+          
+    this.knockBackAngle = _angle;
+    this.isInIFrames = true;
+    this.lastTookDamage = millis();
+    
+    console.log(this.health);
   }
 
   // knocks player back when they get hit by an enemy
@@ -292,27 +318,48 @@ class UpgradesShop {
 
     // display stuff for ui when the shop IS opened
     this.shopBGPos = createVector(width / 2, this.openShopButtonPos.y / 2);
+    console.log(this.shopBGPos.x);
+    console.log(this.shopBGPos.y);
     this.shopBGColour = color(170, 170, 170, 50);
 
+    // may not be needed
     this.page = 1;
     this.maxPage = 1;
 
     // shop costs, upgrade lvs, increase values
+    // movement spd
+    // firing spd
+    this.maxLvs = 8;
+
     this.healthLv = 0;
     this.healthCost = 100;
     this.healthIncreaseAmount = 1;
     
     this.bulletDmgLv = 0;
     this.bulletDmgCost = 100;
+    this.bulletDmgIncreaseAmount = 1;
+
+    this.movementSpdLv = 0;
+    this.movementSpdCost = 100;
+    this.movementSpdIncreaseAmount = 0.5;
+
+    this.bulletFiringSpdLv = 0;
+    this.bulletFiringSpdCost = 100;
+    this.bulletFiringSpdIncreaseAmount = 10;
   }
 
   display(){
     stroke("black");
     fill(this.openShopButtonColour);
-    // circle(this.openShopButtonPos.x, this.openShopButtonPos.y, this.currentRadius);
     arc(this.openShopButtonPos.x, this.openShopButtonPos.y, this.currentRadius * 2, this.currentRadius * 2, 0, PI);
 
     if (canBeginNextWave){
+      // displays "T" to indicate how to open shop
+      noStroke();
+      textAlign(CENTER);
+      fill("black");
+      textSize(30);
+      text("T", this.openShopButtonPos.x, this.openShopButtonPos.y + 30);
       if (!this.isOpened){
         this.currentRadius = this.intermissionRadius;
         this.openShopButtonPos.y = 0;
@@ -324,12 +371,12 @@ class UpgradesShop {
         // draws BG of shop
         let cornerRadius = 20;
         fill(this.shopBGColour);
+        stroke("black");
         rectMode(CENTER);
         rect(this.shopBGPos.x, this.shopBGPos.y, width * 3/5, height / 1.5, cornerRadius);
 
         this.displayTextUI();
       }
-      
     }
     else{
       this.currentRadius = this.duringWaveRadius;
@@ -338,20 +385,46 @@ class UpgradesShop {
   }
 
   displayTextUI(){
+    noStroke();
     textSize(12);
     textStyle(BOLD);
+    textAlign(CENTER);
     fill("black");
-    let textPos1 = createVector(width / 4, this.shopBGPos.x / 16);
+    // let textPos1 = createVector(width / 4, this.shopBGPos.y + height / 18);
+
+    let textX1 = width * 0.36;
+    let textX2 = width * 0.64;
+
+    let textY1 = height/12;
+    let textY2 = 2 * height/12;
+    let textY3 = 3 * height/12;
 
     // max health increase
-    text("INCREASE MAX HEALTH (Y)", textPos1.x, textPos1.y);
-    text("COST: " + this.healthCost + "   LV: " + this.healthLv, textPos1.x, textPos1.y + 12);
+    text("INCREASE MAX HEALTH (Y)", textX1, textY1);
+    text("COST: " + this.healthCost + "   LV: " + this.healthLv, textX1, textY1 + 12);
+
+    // bullet damage increase
+    text("INCREASE BULLET DAMAGE (U)", textX1, textY2);
+    text("COST: " + this.bulletDmgCost + "   LV: " + this.bulletDmgLv, textX1, textY2 + 12);
+
+    // text("INCREASE MAX HEALTH (Y)", textX1, textY3);
+    // text("COST: " + this.healthCost + "   LV: " + this.healthLv, textX1, textY3 + 12);
+
+
+    // text("INCREASE MAX HEALTH (Y)", textX2, textY1);
+    // text("COST: " + this.healthCost + "   LV: " + this.healthLv, textX2, textY1 + 12);
+
+    // text("INCREASE MAX HEALTH (Y)", textX2, textY2);
+    // text("COST: " + this.healthCost + "   LV: " + this.healthLv, textX2, textY2 + 12);
+
+    // text("INCREASE MAX HEALTH (Y)", textX2, textY3);
+    // text("COST: " + this.healthCost + "   LV: " + this.healthLv, textX2, textY3 + 12);
 
     // increase movement spd
 
   }
 
-  increaseMaxHealth(_increaseAmount){
+  maxHealthUpgrade(_increaseAmount){
     if (playerCash >= this.healthCost){
       player.maxHealth += _increaseAmount;
       player.health = player.maxHealth;
@@ -364,18 +437,24 @@ class UpgradesShop {
     }
   }
 
-  increaseBulletDamage(_increaseAmount, _cost){
-    if (playerCash >= _cost){
+  bulletDamageUpgrade(_increaseAmount){
+    if (playerCash >= this.bulletDmgCost){
       player.bulletDamage += _increaseAmount;
       console.log("bulletDamage: " + player.bulletDamage);
 
-      playerCash -= _cost;
+      this.bulletDmgLv += 1;
+      this.bulletDmgCost += 100;
+      playerCash -= this.bulletDmgCost;
     }
+  }
+
+  bulletFirerateUpgrade(){
+    
   }
 
   // updates costs + increase values of upgrades depending which level your at
   updateUpgradeValues(){
-    // max health increase
+    // max health
 
   }
 }
@@ -432,7 +511,8 @@ function managePlayerFunctions(){
   player.display();
   player.movement();
   player.shootBullets();
-  player.takeDamage();
+  // player.takeDamage();
+  player.collideWithZombie();
 
   if (player.isDead()){
     reset();
@@ -575,11 +655,11 @@ function keyReleased(){
   // allows you to purchase upgrades when the shop is opened
   if (upgradesShop.isOpened){
     if (key === "y"){
-      upgradesShop.increaseMaxHealth(1);
+      upgradesShop.maxHealthUpgrade(1);
       console.log("Cash: " + playerCash);
     }
     else if (key === "u"){
-      upgradesShop.increaseBulletDamage(1, 100);
+      upgradesShop.bulletDamageUpgrade(1);
       console.log("Cash: " + playerCash);
     }
   }
@@ -590,6 +670,7 @@ function keyReleased(){
 // used purely for debugging; delete once project is finished
 function debugText(){
   textSize(10);
+  textStyle(NORMAL);
   if (player.isInIFrames){
     fill("yellow");
   }
