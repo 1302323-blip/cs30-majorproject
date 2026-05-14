@@ -10,7 +10,7 @@ let player;
 
 let playerBulletsArray = [];
 let zombiesArray = [];
-// let zombieProjectileArray = [];
+let zombieProjectileArray = [];
 
 let waveNum = 0;
 let miniWave = 0;
@@ -37,7 +37,7 @@ class Player {
 
     this.maxHealth = 10;
     this.health = this.maxHealth;
-    this.bulletFiringSpd = 150; // milli-seconds (150)
+    this.bulletFirerate = 150; // milli-seconds (150)
     this.lastTimeFiredBullet = 0;
     this.bulletDamage = 1;
     
@@ -93,7 +93,7 @@ class Player {
 
   shootBullets(){
     if (mouseIsPressed && this.lastTimeFiredBullet < millis()){
-      this.lastTimeFiredBullet = millis() + this.bulletFiringSpd;
+      this.lastTimeFiredBullet = millis() + this.bulletFirerate;
       playerBulletsArray.push(new Bullet(this.pos.x, this.pos.y, this.angle, this.bulletDamage));
     }
   }
@@ -286,21 +286,61 @@ class Strong extends Enemy {
   }
 }
 
-// class Shooter extends Enemy {
-//   constructor(){
-//     super("shooter", 15, 2, 3, 1, 15, "blue", "black");
-//   }
+class Shooter extends Enemy {
+  constructor(){
+    super("shooter", 15, 1, 3, 1, 15, "blue", "black");
+    this.firerate = 4000; // milliseconds
+    this.lastTimeFiredBullet = 0;
+    this.bulletRadius = 5;
+    this.bulletDamage = 2;
+  }
 
-//   shoot(){
+  shoot(){
+    if (this.lastTimeFiredBullet < millis()){
+      this.lastTimeFiredBullet = millis() + this.firerate;
+      zombieProjectileArray.push(new EnemyBullet(this.pos.x, this.pos.y, this.angle, this.bulletRadius, "blue", this.bulletDamage, 10,)); // also use angle offset potentially
+      console.log("enemyShot!");
+    }
+  }
+}
 
-//   }
-// }
+class EnemyBullet {
+  constructor(_x, _y, _angle, _radius, _colour, _damage, _spd,){
+    this.pos = createVector(_x, _y);
+    this.angle = _angle;
+    this.spd = _spd;
+    this.radius = _radius;
+    this.damage = _damage;
 
-// class EnemyProjectile {
-//   constructor(_x, _y){
+    this.colour = _colour;
+  }
 
-//   }
-// }
+  display(){
+    noStroke();
+    fill(this.colour);
+    circle(this.pos.x, this.pos.y, this.radius * 2);
+  }
+
+  movement(){
+    this.pos.x += this.spd * cos(this.angle);
+    this.pos.y += this.spd * sin(this.angle);
+  }
+
+  collideWithPlayer(){
+
+  }
+
+  isOffScreen(){
+    let isOffscreen = false;
+    if (this.pos.x < -this.radius || this.pos.x > width - this.radius || this.pos.y < -this.radius || this.pos.y > height - this.radius){
+      isOffscreen = true;
+    }
+    else {
+      isOffscreen = false;
+    }
+    return isOffscreen;
+  }
+}
 
 
 
@@ -327,9 +367,7 @@ class UpgradesShop {
     this.maxPage = 1;
 
     // shop costs, upgrade lvs, increase values
-    // movement spd
-    // firing spd
-    this.maxLvs = 8;
+    this.maxLvs = 8; // can be used later
 
     this.healthLv = 0;
     this.healthCost = 100;
@@ -343,9 +381,9 @@ class UpgradesShop {
     this.movementSpdCost = 100;
     this.movementSpdIncreaseAmount = 0.5;
 
-    this.bulletFiringSpdLv = 0;
-    this.bulletFiringSpdCost = 100;
-    this.bulletFiringSpdIncreaseAmount = 10;
+    this.bulletFirerateLv = 0;
+    this.bulletFirerateCost = 100;
+    this.bulletFirerateIncreaseAmount = 10;
   }
 
   display(){
@@ -400,22 +438,22 @@ class UpgradesShop {
     let textY3 = 3 * height/12;
 
     // max health increase
-    text("INCREASE MAX HEALTH (Y)", textX1, textY1);
+    text("INCREASE MAX HEALTH (1)", textX1, textY1);
     text("COST: " + this.healthCost + "   LV: " + this.healthLv, textX1, textY1 + 12);
 
     // bullet damage increase
-    text("INCREASE BULLET DAMAGE (U)", textX1, textY2);
+    text("INCREASE BULLET DAMAGE (2)", textX1, textY2);
     text("COST: " + this.bulletDmgCost + "   LV: " + this.bulletDmgLv, textX1, textY2 + 12);
 
     // text("INCREASE MAX HEALTH (Y)", textX1, textY3);
     // text("COST: " + this.healthCost + "   LV: " + this.healthLv, textX1, textY3 + 12);
 
 
-    // text("INCREASE MAX HEALTH (Y)", textX2, textY1);
-    // text("COST: " + this.healthCost + "   LV: " + this.healthLv, textX2, textY1 + 12);
+    text("INCREASE MOVEMENT SPEED(3)", textX2, textY1);
+    text("COST: " + this.movementSpdCost + "   LV: " + this.movementSpdLv, textX2, textY1 + 12);
 
-    // text("INCREASE MAX HEALTH (Y)", textX2, textY2);
-    // text("COST: " + this.healthCost + "   LV: " + this.healthLv, textX2, textY2 + 12);
+    text("INCREASE BULLET FIRE RATE (4)", textX2, textY2);
+    text("COST: " + this.bulletFirerateCost + "   LV: " + this.bulletFirerateLv, textX2, textY2 + 12);
 
     // text("INCREASE MAX HEALTH (Y)", textX2, textY3);
     // text("COST: " + this.healthCost + "   LV: " + this.healthLv, textX2, textY3 + 12);
@@ -424,32 +462,50 @@ class UpgradesShop {
 
   }
 
-  maxHealthUpgrade(_increaseAmount){
+  maxHealthUpgrade(){
     if (playerCash >= this.healthCost){
-      player.maxHealth += _increaseAmount;
+      player.maxHealth += this.healthIncreaseAmount;
       player.health = player.maxHealth;
       console.log("maxHealth: " + player.maxHealth);
       console.log("health: " + player.health);
 
       this.healthLv += 1;
-      this.healthCost += 100;
       playerCash -= this.healthCost;
+      this.healthCost += 100;
     }
   }
 
-  bulletDamageUpgrade(_increaseAmount){
+  bulletDamageUpgrade(){
     if (playerCash >= this.bulletDmgCost){
-      player.bulletDamage += _increaseAmount;
+      player.bulletDamage += this.bulletDmgIncreaseAmount;
       console.log("bulletDamage: " + player.bulletDamage);
 
       this.bulletDmgLv += 1;
-      this.bulletDmgCost += 100;
       playerCash -= this.bulletDmgCost;
+      this.bulletDmgCost += 100;
+    }
+  }
+
+  movementSpdUpgrade(){
+    if (playerCash >= this.movementSpdCost){
+      player.speed += this.movementSpdIncreaseAmount;
+      console.log("movementSpd: " + player.speed);
+
+      this.movementSpdLv += 1;
+      playerCash -= this.movementSpdCost;
+      this.movementSpdCost += 100;
     }
   }
 
   bulletFirerateUpgrade(){
-    
+    if (playerCash >= this.bulletFirerateCost){
+      player.bulletFirerate -= this.bulletFirerateIncreaseAmount;
+      console.log("bulletFiringSpd: " + player.bulletFirerate);
+
+      this.bulletFirerateLv += 1;
+      playerCash -= this.bulletFirerateCost;
+      this.bulletFirerateCost += 150;
+    }
   }
 
   // updates costs + increase values of upgrades depending which level your at
@@ -494,6 +550,7 @@ function draw(){
   manageShopFunctions();
   manageBulletFunctions();
   manageZombieFunctions();
+  manageZombieProjectileFunctions();
   managePlayerFunctions();
   
 
@@ -536,6 +593,22 @@ function manageZombieFunctions(){
     zombiesArray[i].movement();
     zombiesArray[i].takeDamage();
     zombiesArray[i].killZombie();
+
+    // strange bug where its somehow not getting an enemyType
+    if (zombiesArray[i].type === "shooter"){
+      zombiesArray[i].shoot();
+    }
+  }
+}
+
+function manageZombieProjectileFunctions(){
+  for (let i = zombieProjectileArray.length - 1; i >= 0; i--){
+    zombieProjectileArray[i].display();
+    zombieProjectileArray[i].movement();
+
+    if (zombieProjectileArray[i].isOffScreen()){
+      zombieProjectileArray.splice(i, 1);
+    }
   }
 }
 
@@ -544,8 +617,11 @@ function manageZombieFunctions(){
 function zombieWaveManager(){
   // intervals are written in seconds
   if (waveNum === 1){
-    spawnZombies("normal", 5, 1, 1);
-    spawnZombies("fast", 5, 1, 2);
+    // spawnZombies("normal", 5, 1, 1);
+    // spawnZombies("fast", 5, 1, 2);
+    // areAllZombiesSpawned(2);
+    spawnZombies("shooter", 10, 1, 1);
+    spawnZombies("normal", 5, 1, 2);
     areAllZombiesSpawned(2);
   }
   if (waveNum === 2){
@@ -584,6 +660,9 @@ function zombieTypeToSpawn(_enemyType){
   }
   if (_enemyType === "strong"){
     zombiesArray.push(new Strong());
+  }
+  if (_enemyType === "shooter"){
+    zombiesArray.push(new Shooter());
   }
   
   // template for new enemy spawns for function
@@ -654,12 +733,20 @@ function keyReleased(){
 
   // allows you to purchase upgrades when the shop is opened
   if (upgradesShop.isOpened){
-    if (key === "y"){
-      upgradesShop.maxHealthUpgrade(1);
+    if (key === "1"){
+      upgradesShop.maxHealthUpgrade();
       console.log("Cash: " + playerCash);
     }
-    else if (key === "u"){
-      upgradesShop.bulletDamageUpgrade(1);
+    else if (key === "2"){
+      upgradesShop.bulletDamageUpgrade();
+      console.log("Cash: " + playerCash);
+    }
+    else if(key === "3"){
+      upgradesShop.movementSpdUpgrade();
+      console.log("Cash: " + playerCash);
+    }
+    else if (key === "4"){
+      upgradesShop.bulletFirerateUpgrade();
       console.log("Cash: " + playerCash);
     }
   }
