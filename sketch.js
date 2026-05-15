@@ -21,7 +21,6 @@ let canBeginNextWave = true;
 let lastSpawnTime = 0;
 
 let upgradesShop;
-// let isShopOpen = false;
 let playerCash;
 
 
@@ -102,13 +101,14 @@ class Player {
     if (!this.isInIFrames){
       for (let i = zombiesArray.length - 1; i >= 0; i--){
         if (dist(zombiesArray[i].pos.x, zombiesArray[i].pos.y, this.pos.x, this.pos.y) < this.size * 0.9){
-          this.takeDamage(zombiesArray[i].damage, zombiesArray[i].angle);
+          this.takeDamage(zombiesArray[i].damage);
+          this.knockBackAngle = zombiesArray[i].angle;
           zombiesArray.splice(i, 1);
         }
       }
     }
     else {
-      this.knockBack(this.knockBackAngle);
+      this.knockBack();
 
       if (millis() >= this.lastTookDamage + this.iFramesLength){
         this.isInIFrames = false;
@@ -116,32 +116,25 @@ class Player {
     }
   }
 
-  takeDamage(_damage, _angle){
-    // if (!this.isInIFrames){
-    //   for (let i = zombiesArray.length - 1; i >= 0; i--){
-    //     if (dist(zombiesArray[i].pos.x, zombiesArray[i].pos.y, this.pos.x, this.pos.y) < this.size * 0.9){
-    //       this.health -= zombiesArray[i].damage;
-          
-    //       this.knockBackAngle = zombiesArray[i].angle;
-    //       this.isInIFrames = true;
-    //       this.lastTookDamage = millis();
-          
-    //       zombiesArray.splice(i, 1);
-    //       console.log(this.health);
-    //     }
-    //   }
-    // }
-    // else {
-    //   this.knockBack(this.knockBackAngle);
+  collideWithZombieBullet(){
+    if (!this.isInIFrames){
+      for (let i = zombieProjectileArray.length - 1; i >= 0; i--){
+        if (dist(zombieProjectileArray[i].pos.x, zombieProjectileArray[i].pos.y, this.pos.x, this.pos.y) < this.size * 2/3){
+          this.takeDamage(zombieProjectileArray[i].damage);
+          zombieProjectileArray.splice(i, 1);
+        }
+      }
+    }
+    else {
+      if (millis() >= this.lastTookDamage + this.iFramesLength){
+        this.isInIFrames = false;
+      }
+    }
+  }
 
-    //   if (millis() >= this.lastTookDamage + this.iFramesLength){
-    //     this.isInIFrames = false;
-    //   }
-    // }
-
+  takeDamage(_damage){
     this.health -= _damage;
-          
-    this.knockBackAngle = _angle;
+
     this.isInIFrames = true;
     this.lastTookDamage = millis();
     
@@ -149,7 +142,7 @@ class Player {
   }
 
   // knocks player back when they get hit by an enemy
-  knockBack(_angle){
+  knockBack(){
     let knockBackDuration = this.iFramesLength * 0.1;
 
     if (millis() <= this.lastTookDamage + knockBackDuration){
@@ -288,18 +281,21 @@ class Strong extends Enemy {
 
 class Shooter extends Enemy {
   constructor(){
-    super("shooter", 15, 1, 3, 1, 15, "blue", "black");
+    super("shooter", 15, 1.2, 3, 1, 15, "blue", "black");
     this.firerate = 4000; // milliseconds
     this.lastTimeFiredBullet = 0;
     this.bulletRadius = 5;
     this.bulletDamage = 2;
+    this.bulletSpd = 10;
   }
 
   shoot(){
-    if (this.lastTimeFiredBullet < millis()){
-      this.lastTimeFiredBullet = millis() + this.firerate;
-      zombieProjectileArray.push(new EnemyBullet(this.pos.x, this.pos.y, this.angle, this.bulletRadius, "blue", this.bulletDamage, 10,)); // also use angle offset potentially
-      console.log("enemyShot!");
+    if (this.pos.x > 0 && this.pos.x < width && this.pos.y > 0 && this.pos.y < height){
+      if (this.lastTimeFiredBullet < millis()){
+        this.lastTimeFiredBullet = millis() + this.firerate;
+        zombieProjectileArray.push(new EnemyBullet(this.pos.x, this.pos.y, this.angle, this.bulletRadius, "blue", this.bulletDamage, this.bulletSpd,)); // also use angle offset potentially
+        console.log("enemyShot!");
+      }
     }
   }
 }
@@ -316,7 +312,7 @@ class EnemyBullet {
   }
 
   display(){
-    noStroke();
+    stroke("black");
     fill(this.colour);
     circle(this.pos.x, this.pos.y, this.radius * 2);
   }
@@ -324,10 +320,6 @@ class EnemyBullet {
   movement(){
     this.pos.x += this.spd * cos(this.angle);
     this.pos.y += this.spd * sin(this.angle);
-  }
-
-  collideWithPlayer(){
-
   }
 
   isOffScreen(){
@@ -358,8 +350,6 @@ class UpgradesShop {
 
     // display stuff for ui when the shop IS opened
     this.shopBGPos = createVector(width / 2, this.openShopButtonPos.y / 2);
-    console.log(this.shopBGPos.x);
-    console.log(this.shopBGPos.y);
     this.shopBGColour = color(170, 170, 170, 50);
 
     // may not be needed
@@ -533,6 +523,7 @@ function reset(){
   player = new Player();
   playerBulletsArray.splice(0);
   zombiesArray.splice(0);
+  zombieProjectileArray.splice(0);
 
   upgradesShop = new UpgradesShop();
   playerCash = 100000;
@@ -540,6 +531,9 @@ function reset(){
   waveNum = 0;
   miniWave = 0;
   enemySpawnedCounter = 0;
+
+  canBeginNextWave = true;
+  zombiesFinishedSpawning = true;
 }
 
 
@@ -548,9 +542,9 @@ function draw(){
 
   // class management
   manageShopFunctions();
+  manageZombieProjectileFunctions();
   manageBulletFunctions();
   manageZombieFunctions();
-  manageZombieProjectileFunctions();
   managePlayerFunctions();
   
 
@@ -570,6 +564,7 @@ function managePlayerFunctions(){
   player.shootBullets();
   // player.takeDamage();
   player.collideWithZombie();
+  player.collideWithZombieBullet();
 
   if (player.isDead()){
     reset();
@@ -592,12 +587,16 @@ function manageZombieFunctions(){
     zombiesArray[i].display();
     zombiesArray[i].movement();
     zombiesArray[i].takeDamage();
-    zombiesArray[i].killZombie();
 
-    // strange bug where its somehow not getting an enemyType
-    if (zombiesArray[i].type === "shooter"){
-      zombiesArray[i].shoot();
-    }
+    specialZombieFunctions(zombiesArray[i]);
+
+    zombiesArray[i].killZombie();
+  }
+}
+
+function specialZombieFunctions(zombie){
+  if (zombie.type === "shooter"){
+    zombie.shoot();
   }
 }
 
@@ -645,7 +644,6 @@ function spawnZombies(_enemyType, _amount, _spawnInterval, _miniWaveNum){
     if (enemySpawnedCounter === _amount){
       miniWave += 1;
       enemySpawnedCounter = 0;
-      console.log("miniWave: " + miniWave);
     }
   }
 }
@@ -695,9 +693,6 @@ function newWave(){
   zombiesFinishedSpawning = false;
   waveNum += 1;
   miniWave = 1;
-  console.log("new wave");
-  console.log("wave: " + waveNum);
-  console.log("miniWave: " + miniWave);
 
   upgradesShop.isOpened = false;
 }
@@ -713,7 +708,6 @@ function zombieWaveButton(){
   else if (zombiesFinishedSpawning && allZombiesDead){
     canBeginNextWave = true;
     miniWave = 0;
-    console.log("finished wave");
   }
 }
 
