@@ -23,6 +23,9 @@ let lastSpawnTime = 0;
 let upgradesShop;
 let playerCash;
 
+// sound effects/music
+let gameMusicLoop;
+
 
 
 class Player {
@@ -30,21 +33,23 @@ class Player {
     this.pos = createVector(width/2, height / 2);
     this.dir = createVector(0, 0);
     this.angle;
-    this.speed = 7; //7
+    this.speed = 5.5; // 7
     this.size = 30;
     this.colour = color(255);
 
     this.maxHealth = 10;
     this.health = this.maxHealth;
-    this.bulletFirerate = 150; // milli-seconds (150)
+    this.bulletFirerate = 300; // milli-seconds (150)
     this.lastTimeFiredBullet = 0;
-    this.bulletDamage = 1;
+    this.bulletDamage = 0.5;
     
     this.iFramesLength = 1000; // milli-seconds
     this.isInIFrames = false;
     this.lastTookDamage = 0;
     this.knockBackSpd = 15;
     this.knockBackAngle;
+
+    this.lastHitBy; // zombie/projectile
   }
 
   movement(){
@@ -101,13 +106,14 @@ class Player {
     if (!this.isInIFrames){
       for (let i = zombiesArray.length - 1; i >= 0; i--){
         if (dist(zombiesArray[i].pos.x, zombiesArray[i].pos.y, this.pos.x, this.pos.y) < this.size * 0.9){
+          this.lastHitBy = "zombie";
           this.takeDamage(zombiesArray[i].damage);
           this.knockBackAngle = zombiesArray[i].angle;
           zombiesArray.splice(i, 1);
         }
       }
     }
-    else {
+    else if (this.lastHitBy === "zombie"){
       this.knockBack();
 
       if (millis() >= this.lastTookDamage + this.iFramesLength){
@@ -120,12 +126,13 @@ class Player {
     if (!this.isInIFrames){
       for (let i = zombieProjectileArray.length - 1; i >= 0; i--){
         if (dist(zombieProjectileArray[i].pos.x, zombieProjectileArray[i].pos.y, this.pos.x, this.pos.y) < this.size * 2/3){
+          this.lastHitBy = "projectile";
           this.takeDamage(zombieProjectileArray[i].damage);
           zombieProjectileArray.splice(i, 1);
         }
       }
     }
-    else {
+    else if (this.lastHitBy === "projectile"){
       if (millis() >= this.lastTookDamage + this.iFramesLength){
         this.isInIFrames = false;
       }
@@ -365,7 +372,7 @@ class UpgradesShop {
     
     this.bulletDmgLv = 0;
     this.bulletDmgCost = 100;
-    this.bulletDmgIncreaseAmount = 1;
+    this.bulletDmgIncreaseAmount = 0.5;
 
     this.movementSpdLv = 0;
     this.movementSpdCost = 100;
@@ -373,7 +380,7 @@ class UpgradesShop {
 
     this.bulletFirerateLv = 0;
     this.bulletFirerateCost = 100;
-    this.bulletFirerateIncreaseAmount = 10;
+    this.bulletFirerateIncreaseAmount = 25;
   }
 
   display(){
@@ -509,6 +516,10 @@ class UpgradesShop {
 
 
 
+function preload(){
+  gameMusicLoop = loadSound("Assets/n-Dimensions (Main Theme - Retro Ver.mp3");
+}
+
 function setup(){
   if (windowWidth > windowHeight){
     createCanvas(windowHeight, windowHeight);
@@ -534,6 +545,11 @@ function reset(){
 
   canBeginNextWave = true;
   zombiesFinishedSpawning = true;
+
+  // music
+  gameMusicLoop.stop();
+  gameMusicLoop.setVolume(1);
+  gameMusicLoop.loop();
 }
 
 
