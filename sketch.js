@@ -26,6 +26,15 @@ let playerCash;
 // sound effects/music
 let gameMusicLoop;
 
+let shootBulletSFX;
+let tookDmgSFX;
+
+let enemyBulletShootSFX;
+let hitEnemySFX;
+let enemyDieSFX;
+
+let openShopSFX;
+let buyUpgradeSFX;
 
 
 class Player {
@@ -33,15 +42,15 @@ class Player {
     this.pos = createVector(width/2, height / 2);
     this.dir = createVector(0, 0);
     this.angle;
-    this.speed = 5.5; // 7
+    this.speed = 5.5; // 5.5
     this.size = 30;
     this.colour = color(255);
 
     this.maxHealth = 10;
     this.health = this.maxHealth;
-    this.bulletFirerate = 300; // milli-seconds (150)
+    this.bulletFirerate = 300; // milli-seconds (300)
     this.lastTimeFiredBullet = 0;
-    this.bulletDamage = 0.5;
+    this.bulletDamage = 2; // 0.5
     
     this.iFramesLength = 1000; // milli-seconds
     this.isInIFrames = false;
@@ -50,6 +59,9 @@ class Player {
     this.knockBackAngle;
 
     this.lastHitBy; // zombie/projectile
+
+    this.healthUIPos = createVector(width/2, height/2);
+    this.healthUISize = 100;
   }
 
   movement(){
@@ -99,6 +111,9 @@ class Player {
     if (mouseIsPressed && this.lastTimeFiredBullet < millis()){
       this.lastTimeFiredBullet = millis() + this.bulletFirerate;
       playerBulletsArray.push(new Bullet(this.pos.x, this.pos.y, this.angle, this.bulletDamage));
+
+      shootBulletSFX.setVolume(0.3);
+      shootBulletSFX.play();
     }
   }
 
@@ -144,6 +159,9 @@ class Player {
 
     this.isInIFrames = true;
     this.lastTookDamage = millis();
+
+    tookDmgSFX.setVolume(0.7);
+    tookDmgSFX.play();
     
     console.log(this.health);
   }
@@ -156,6 +174,11 @@ class Player {
       this.pos.x += this.knockBackSpd * cos(this.knockBackAngle);
       this.pos.y += this.knockBackSpd * sin(this.knockBackAngle);
     }
+  }
+
+  // shows the healthBar of the player
+  displayHealthUI(){
+    
   }
 
   // check if player has no health left
@@ -255,6 +278,9 @@ class Enemy {
       if (dist(playerBulletsArray[i].pos.x, playerBulletsArray[i].pos.y, this.pos.x, this.pos.y) < this.radius * 1.1){
         this.health -= playerBulletsArray[i].damage;
         playerBulletsArray.splice(i, 1);
+
+        hitEnemySFX.setVolume(0.8);
+        hitEnemySFX.play();
       }
     }
   }
@@ -263,6 +289,10 @@ class Enemy {
     if (this.health <= 0){
       let index = zombiesArray.indexOf(this);
       playerCash += this.bounty;
+
+      enemyDieSFX.setVolume(0.3);
+      enemyDieSFX.play();
+
       zombiesArray.splice(index, 1);
     }
   }
@@ -301,7 +331,9 @@ class Shooter extends Enemy {
       if (this.lastTimeFiredBullet < millis()){
         this.lastTimeFiredBullet = millis() + this.firerate;
         zombieProjectileArray.push(new EnemyBullet(this.pos.x, this.pos.y, this.angle, this.bulletRadius, "blue", this.bulletDamage, this.bulletSpd,)); // also use angle offset potentially
-        console.log("enemyShot!");
+        
+        enemyBulletShootSFX.setVolume(0.2);
+        enemyBulletShootSFX.play();
       }
     }
   }
@@ -340,7 +372,6 @@ class EnemyBullet {
     return isOffscreen;
   }
 }
-
 
 
 class UpgradesShop {
@@ -424,7 +455,7 @@ class UpgradesShop {
     textSize(12);
     textStyle(BOLD);
     textAlign(CENTER);
-    fill("black");
+    fill("white");
     // let textPos1 = createVector(width / 4, this.shopBGPos.y + height / 18);
 
     let textX1 = width * 0.36;
@@ -469,6 +500,8 @@ class UpgradesShop {
       this.healthLv += 1;
       playerCash -= this.healthCost;
       this.healthCost += 100;
+
+      this.playUpgradeSFX();
     }
   }
 
@@ -480,6 +513,8 @@ class UpgradesShop {
       this.bulletDmgLv += 1;
       playerCash -= this.bulletDmgCost;
       this.bulletDmgCost += 100;
+
+      this.playUpgradeSFX();
     }
   }
 
@@ -491,6 +526,8 @@ class UpgradesShop {
       this.movementSpdLv += 1;
       playerCash -= this.movementSpdCost;
       this.movementSpdCost += 100;
+
+      this.playUpgradeSFX();
     }
   }
 
@@ -502,6 +539,8 @@ class UpgradesShop {
       this.bulletFirerateLv += 1;
       playerCash -= this.bulletFirerateCost;
       this.bulletFirerateCost += 150;
+
+      this.playUpgradeSFX();
     }
   }
 
@@ -509,6 +548,11 @@ class UpgradesShop {
   updateUpgradeValues(){
     // max health
 
+  }
+
+  playUpgradeSFX(){
+    buyUpgradeSFX.setVolume(0.2);
+    buyUpgradeSFX.play();
   }
 }
 
@@ -518,6 +562,16 @@ class UpgradesShop {
 
 function preload(){
   gameMusicLoop = loadSound("Assets/n-Dimensions (Main Theme - Retro Ver.mp3");
+
+  shootBulletSFX = loadSound("Assets/SFX/synth_laser_03.ogg"); //
+  tookDmgSFX = loadSound("Assets/SFX/retro_die_01.ogg"); //
+
+  enemyBulletShootSFX = loadSound("Assets/SFX/synth_laser_04.ogg"); //
+  hitEnemySFX = loadSound("Assets/SFX/shot_01.ogg"); //
+  enemyDieSFX = loadSound("Assets/SFX/retro_die_02.ogg"); //
+
+  openShopSFX = loadSound("Assets/SFX/click.wav"); //
+  buyUpgradeSFX = loadSound("Assets/SFX/power_up_04.ogg"); //
 }
 
 function setup(){
@@ -548,13 +602,13 @@ function reset(){
 
   // music
   gameMusicLoop.stop();
-  gameMusicLoop.setVolume(1);
+  gameMusicLoop.setVolume(0.5);
   gameMusicLoop.loop();
 }
 
 
 function draw(){
-  background(100);
+  background(0);
 
   // class management
   manageShopFunctions();
@@ -581,6 +635,8 @@ function managePlayerFunctions(){
   // player.takeDamage();
   player.collideWithZombie();
   player.collideWithZombieBullet();
+
+  player.displayHealthUI();
 
   if (player.isDead()){
     reset();
@@ -711,6 +767,7 @@ function newWave(){
   miniWave = 1;
 
   upgradesShop.isOpened = false;
+  openShopSFX.play();
 }
 
 
@@ -738,7 +795,9 @@ function keyReleased(){
   if (key === "t" && canBeginNextWave){
     upgradesShop.isOpened = !upgradesShop.isOpened;
     upgradesShop.page = 1;
-    console.log("shopOpened?: " + upgradesShop.isOpened);
+    
+    openShopSFX.setVolume(1);
+    openShopSFX.play();
   }
 
   // allows you to purchase upgrades when the shop is opened
