@@ -45,6 +45,7 @@ class Player {
     this.speed = 5.5; // 5.5
     this.size = 30;
     this.colour = color(255);
+    this.currentColour = this.colour;
 
     this.maxHealth = 10;
     this.health = this.maxHealth;
@@ -56,9 +57,15 @@ class Player {
     this.isInIFrames = false;
     this.lastTookDamage = 0;
     this.knockBackSpd = 15;
+    this.totalKnockBackIntervals = 0; // counts amount of times knockBack has been applied
     this.knockBackAngle;
 
     this.lastHitBy; // zombie/projectile
+
+    // effects for when damaged
+    this.flashingColour = color(0);
+    this.lastTimeFlashed = 0;
+    this.flashedLastInterval = false;
 
     this.healthUIPos = createVector(width/2, height/2);
     this.healthUISize = 100;
@@ -96,15 +103,21 @@ class Player {
   }
 
   display(){
+    if (!this.isInIFrames){
+      this.currentColour = this.colour;
+      this.totalKnockBackIntervals = 0;
+    }
+    
     push();
     translate(this.pos.x, this.pos.y);
     this.angle = atan2(mouseY - this.pos.y, mouseX - this.pos.x);
-    fill(this.colour);
+    fill(this.currentColour);
     stroke("black");
     rotate(this.angle);
     rectMode(CENTER);
     square(0, 0, this.size);
     pop();
+
   }
 
   shootBullets(){
@@ -130,6 +143,7 @@ class Player {
     }
     else if (this.lastHitBy === "zombie"){
       this.knockBack();
+      this.damageFlashingEffect();
 
       if (millis() >= this.lastTookDamage + this.iFramesLength){
         this.isInIFrames = false;
@@ -148,6 +162,8 @@ class Player {
       }
     }
     else if (this.lastHitBy === "projectile"){
+      this.damageFlashingEffect();
+
       if (millis() >= this.lastTookDamage + this.iFramesLength){
         this.isInIFrames = false;
       }
@@ -168,11 +184,30 @@ class Player {
 
   // knocks player back when they get hit by an enemy
   knockBack(){
-    let knockBackDuration = this.iFramesLength * 0.1;
+    let maxKnockBackIntervals = 10;
 
-    if (millis() <= this.lastTookDamage + knockBackDuration){
+    if (this.totalKnockBackIntervals < maxKnockBackIntervals){
       this.pos.x += this.knockBackSpd * cos(this.knockBackAngle);
       this.pos.y += this.knockBackSpd * sin(this.knockBackAngle);
+
+      this.totalKnockBackIntervals += 1;
+    }
+  }
+
+  // when damaged, flash from base colour to flashing colour for iFrames duration
+  damageFlashingEffect(){
+    let flashingInterval = this.iFramesLength * 0.1;
+
+    if (millis() > this.lastTimeFlashed + flashingInterval){
+      if (this.flashedLastInterval){
+        this.currentColour = this.colour;
+      }
+      else if (!this.flashedLastInterval){
+        this.currentColour = this.flashingColour;
+      }
+
+      this.flashedLastInterval = !this.flashedLastInterval;
+      this.lastTimeFlashed = millis();
     }
   }
 
@@ -241,6 +276,11 @@ class Enemy {
     this.fillColour = _fillColour;
     this.strokeColour = _strokeColour;
 
+    this.currentFillColour = this.fillColour;
+    this.damagedFillColour = color(255);
+
+    this.lastTimeDamaged = 0;
+
     // spawn enemy in random location
     if (random(1) < 0.5){
       this.pos.y = random(-height/2, 0);
@@ -278,10 +318,26 @@ class Enemy {
       if (dist(playerBulletsArray[i].pos.x, playerBulletsArray[i].pos.y, this.pos.x, this.pos.y) < this.radius * 1.1){
         this.health -= playerBulletsArray[i].damage;
         playerBulletsArray.splice(i, 1);
+        this.lastTimeDamaged = millis();
 
         hitEnemySFX.setVolume(0.8);
         hitEnemySFX.play();
+
+        this.dmgFlash();
       }
+    }
+  }
+
+  // when damaged, flash quickly to white
+  dmgFlash(){
+    let flashTime = 0.1;
+    // flash
+    if (millis() < flashTime + this.lastTimeDamaged){
+      this.currentFillColour = this.damagedFillColour;
+    }
+    // revert to normal colour
+    else {
+      this.currentFillColour = this.fillColour;
     }
   }
 
