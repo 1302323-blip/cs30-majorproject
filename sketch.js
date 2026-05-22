@@ -36,6 +36,7 @@ let enemyDieSFX;
 let openShopSFX;
 let buyUpgradeSFX;
 
+// for size stuff
 
 class Player {
   constructor(){
@@ -43,7 +44,8 @@ class Player {
     this.dir = createVector(0, 0);
     this.angle;
     this.speed = 5.5; // 5.5
-    this.size = 30;
+    this.size = 30; // 30
+    console.log(this.size);
     this.colour = color(255);
     this.currentColour = this.colour;
 
@@ -273,12 +275,11 @@ class Enemy {
     this.damage = _damage;
     this.bounty = _bounty;
 
+
     this.fillColour = _fillColour;
     this.strokeColour = _strokeColour;
-
     this.currentFillColour = this.fillColour;
     this.damagedFillColour = color(255);
-
     this.lastTimeDamaged = 0;
 
     // spawn enemy in random location
@@ -301,7 +302,7 @@ class Enemy {
     push();
     translate(this.pos.x, this.pos.y);
     this.angle = atan2(player.pos.y - this.pos.y, player.pos.x - this.pos.x);
-    fill(this.fillColour);
+    this.determineFillColour();
     stroke(this.strokeColour);
     rotate(this.angle);
     circle(0, 0, this.radius * 2);
@@ -318,27 +319,27 @@ class Enemy {
       if (dist(playerBulletsArray[i].pos.x, playerBulletsArray[i].pos.y, this.pos.x, this.pos.y) < this.radius * 1.1){
         this.health -= playerBulletsArray[i].damage;
         playerBulletsArray.splice(i, 1);
+
         this.lastTimeDamaged = millis();
 
         hitEnemySFX.setVolume(0.8);
         hitEnemySFX.play();
-
-        this.dmgFlash();
       }
     }
   }
 
-  // when damaged, flash quickly to white
-  dmgFlash(){
-    let flashTime = 0.1;
-    // flash
-    if (millis() < flashTime + this.lastTimeDamaged){
-      this.currentFillColour = this.damagedFillColour;
-    }
-    // revert to normal colour
-    else {
+  determineFillColour(){
+    let flashTime = 100; // milliseconds
+    // stay normal colour
+    if (millis() >= this.lastTimeDamaged + flashTime){
       this.currentFillColour = this.fillColour;
     }
+    //flash
+    else {
+      this.currentFillColour = this.damagedFillColour;
+    }
+
+    fill(this.currentFillColour);
   }
 
   killZombie(){
@@ -744,12 +745,8 @@ function manageZombieProjectileFunctions(){
 function zombieWaveManager(){
   // intervals are written in seconds
   if (waveNum === 1){
-    // spawnZombies("normal", 5, 1, 1);
-    // spawnZombies("fast", 5, 1, 2);
-    // areAllZombiesSpawned(2);
-    spawnZombies("shooter", 10, 1, 1);
-    spawnZombies("normal", 5, 1, 2);
-    areAllZombiesSpawned(2);
+    spawnZombies("normal", 8, 1, 1);
+    areAllZombiesSpawned(1);
   }
   if (waveNum === 2){
     spawnZombies("fast", 7, 0.5, 1);
@@ -839,6 +836,7 @@ function zombieWaveButton(){
     miniWave = 0;
   }
 }
+
 
 
 function manageShopFunctions(){
