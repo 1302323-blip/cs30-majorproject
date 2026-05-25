@@ -43,7 +43,7 @@ class Player {
     this.pos = createVector(width/2, height / 2);
     this.dir = createVector(0, 0);
     this.angle;
-    this.speed = 5.5; // 5.5
+    this.speed = 5; // 5.5
     this.size = 30; // 30
     console.log(this.size);
     this.colour = color(255);
@@ -51,9 +51,9 @@ class Player {
 
     this.maxHealth = 10;
     this.health = this.maxHealth;
-    this.bulletFirerate = 300; // milli-seconds (300)
+    this.bulletFirerate = 400; // milli-seconds (300)
     this.lastTimeFiredBullet = 0;
-    this.bulletDamage = 2; // 0.5
+    this.bulletDamage = 1; // 1
     
     this.iFramesLength = 1000; // milli-seconds
     this.isInIFrames = false;
@@ -70,7 +70,7 @@ class Player {
     this.flashedLastInterval = false;
 
     this.healthUIPos = createVector(width/2, height/2);
-    this.healthUISize = 100;
+    this.healthUISize = 50;
   }
 
   movement(){
@@ -215,7 +215,21 @@ class Player {
 
   // shows the healthBar of the player
   displayHealthUI(){
-    
+    // background of it
+    noStroke();
+    fill(50);
+    circle(this.healthUIPos.x, this.healthUIPos.y, this.healthUISize * 1.2);
+
+    // meter
+    noStroke();
+    fill("green");
+    arc(this.healthUIPos.x, this.healthUIPos.y, this.healthUISize, this.healthUISize, 0, 2 * PI * (this.health / this.maxHealth));
+
+    fill("black");
+    stroke("white");
+    textAlign(CENTER);
+    textSize(25);
+    text(this.health, this.healthUIPos.x, this.healthUIPos.y + 25/4);
   }
 
   // check if player has no health left
@@ -357,25 +371,25 @@ class Enemy {
 
 class Normal extends Enemy {
   constructor(){
-    super("normal", 15, 3, 3, 1, 15, color(100, 250, 100), "black");
+    super(normal, 15, 3, 3, 1, 15, color(100, 250, 100), "black");
   }
 }
 
 class Fast extends Enemy {
   constructor(){
-    super("fast", 12, 5, 2, 2, 20, color(255, 0, 0), "black");
+    super(fast, 12, 5, 2, 2, 20, color(255, 0, 0), "black");
   }
 }
 
 class Strong extends Enemy {
   constructor(){
-    super("strong", 20, 2, 10, 5, 40, color(109, 36, 191), "black");
+    super(strong, 35, 2, 10, 5, 40, color(109, 36, 191), "black");
   }
 }
 
 class Shooter extends Enemy {
   constructor(){
-    super("shooter", 15, 1.2, 3, 1, 15, "blue", "black");
+    super(shooter, 15, 1.2, 3, 1, 15, "blue", "black");
     this.firerate = 4000; // milliseconds
     this.lastTimeFiredBullet = 0;
     this.bulletRadius = 5;
@@ -455,11 +469,11 @@ class UpgradesShop {
     this.maxLvs = 8; // can be used later
 
     this.healthLv = 0;
-    this.healthCost = 100;
+    this.healthCost = 150;
     this.healthIncreaseAmount = 1;
     
     this.bulletDmgLv = 0;
-    this.bulletDmgCost = 100;
+    this.bulletDmgCost = 300;
     this.bulletDmgIncreaseAmount = 0.5;
 
     this.movementSpdLv = 0;
@@ -467,7 +481,7 @@ class UpgradesShop {
     this.movementSpdIncreaseAmount = 0.5;
 
     this.bulletFirerateLv = 0;
-    this.bulletFirerateCost = 100;
+    this.bulletFirerateCost = 250;
     this.bulletFirerateIncreaseAmount = 25;
   }
 
@@ -543,8 +557,11 @@ class UpgradesShop {
     // text("INCREASE MAX HEALTH (Y)", textX2, textY3);
     // text("COST: " + this.healthCost + "   LV: " + this.healthLv, textX2, textY3 + 12);
 
-    // increase movement spd
+    // cash text
 
+    textAlign(LEFT);
+    textSize(24);
+    text("CASH: " + playerCash, width / 4.6, height / 3.2);
   }
 
   maxHealthUpgrade(){
@@ -554,9 +571,9 @@ class UpgradesShop {
       console.log("maxHealth: " + player.maxHealth);
       console.log("health: " + player.health);
 
-      this.healthLv += 1;
       playerCash -= this.healthCost;
-      this.healthCost += 100;
+      this.healthCost += 100 * (this.healthLv + 1);
+      this.healthLv += 1;
 
       this.playUpgradeSFX();
     }
@@ -567,9 +584,9 @@ class UpgradesShop {
       player.bulletDamage += this.bulletDmgIncreaseAmount;
       console.log("bulletDamage: " + player.bulletDamage);
 
-      this.bulletDmgLv += 1;
       playerCash -= this.bulletDmgCost;
-      this.bulletDmgCost += 100;
+      this.bulletDmgCost += 200 * (this.bulletDmgLv + 1);
+      this.bulletDmgLv += 1;
 
       this.playUpgradeSFX();
     }
@@ -580,9 +597,9 @@ class UpgradesShop {
       player.speed += this.movementSpdIncreaseAmount;
       console.log("movementSpd: " + player.speed);
 
-      this.movementSpdLv += 1;
       playerCash -= this.movementSpdCost;
-      this.movementSpdCost += 100;
+      this.movementSpdCost += 225 * (this.movementSpdLv + 1);
+      this.movementSpdLv += 1;
 
       this.playUpgradeSFX();
     }
@@ -593,9 +610,9 @@ class UpgradesShop {
       player.bulletFirerate -= this.bulletFirerateIncreaseAmount;
       console.log("bulletFiringSpd: " + player.bulletFirerate);
 
-      this.bulletFirerateLv += 1;
       playerCash -= this.bulletFirerateCost;
-      this.bulletFirerateCost += 150;
+      this.bulletFirerateCost += 175 * (this.bulletFirerateLv + 1);
+      this.bulletFirerateLv += 1;
 
       this.playUpgradeSFX();
     }
@@ -648,7 +665,7 @@ function reset(){
   zombieProjectileArray.splice(0);
 
   upgradesShop = new UpgradesShop();
-  playerCash = 100000;
+  playerCash = 0;
 
   waveNum = 0;
   miniWave = 0;
@@ -668,6 +685,7 @@ function draw(){
   background(0);
 
   // class management
+  player.displayHealthUI();
   manageShopFunctions();
   manageZombieProjectileFunctions();
   manageBulletFunctions();
@@ -686,15 +704,13 @@ function draw(){
 
 
 function managePlayerFunctions(){
-  player.display();
   player.movement();
   player.shootBullets();
   // player.takeDamage();
   player.collideWithZombie();
   player.collideWithZombieBullet();
-
-  player.displayHealthUI();
-
+  player.display();
+  
   if (player.isDead()){
     reset();
   }
@@ -741,17 +757,52 @@ function manageZombieProjectileFunctions(){
 }
 
 
+let normal = "normal";
+let fast = "fast";
+let strong = "strong";
+let shooter = "shooter";
 
 function zombieWaveManager(){
   // intervals are written in seconds
   if (waveNum === 1){
-    spawnZombies("normal", 8, 1, 1);
-    areAllZombiesSpawned(1);
+    spawnZombies(normal, 6, 1, 1);
+    spawnZombies(normal, 5, 0.3, 2);
+    areAllZombiesSpawned(2);
   }
   if (waveNum === 2){
-    spawnZombies("fast", 7, 0.5, 1);
-    spawnZombies("strong", 3, 2, 2);
+    spawnZombies(fast, 5, 0.5, 1);
+    spawnZombies(normal, 7, 0.7, 2);
+    spawnZombies(fast, 3, 0.1, 3);
+    areAllZombiesSpawned(3);
+  }
+  if (waveNum === 3){
+    spawnZombies(normal, 8, 0.4, 1);
+    spawnZombies(strong, 3, 1, 2);
     areAllZombiesSpawned(2);
+  }
+  if (waveNum === 4){
+    spawnZombies(strong, 2, 1, 1);
+    spawnZombies(fast, 10, 0.6, 2);
+    spawnZombies(strong, 2, 0.5, 3);
+    areAllZombiesSpawned(3);
+  }
+  if (waveNum === 5){
+    spawnZombies(normal, 8, 0.4, 1);
+    spawnZombies(fast, 4, 0.3, 2);
+    spawnZombies(strong, 2, 1, 3);
+
+    spawnZombies(normal, 10, 0.6, 4);
+    spawnZombies(fast, 6, 0.5, 5);
+    spawnZombies(strong, 3, 0.8, 6);
+
+    areAllZombiesSpawned(6);
+  }
+  if (waveNum === 6){
+    spawnZombies(normal, 7, 0.5, 1);
+    spawnZombies(shooter, 6, 0.8, 2);
+    spawnZombies(strong, 1, 0.1, 3);
+    spawnZombies(normal, 12, 0.7, 4);
+    areAllZombiesSpawned(4);
   }
 }
 
@@ -775,16 +826,16 @@ function spawnZombies(_enemyType, _amount, _spawnInterval, _miniWaveNum){
 
 // organization function - used to spawn specific type of enemy called in spawnZomibes()
 function zombieTypeToSpawn(_enemyType){
-  if (_enemyType === "normal"){
+  if (_enemyType === normal){
     zombiesArray.push(new Normal());
   }
-  if (_enemyType === "fast"){
+  if (_enemyType === fast){
     zombiesArray.push(new Fast());
   }
-  if (_enemyType === "strong"){
+  if (_enemyType === strong){
     zombiesArray.push(new Strong());
   }
-  if (_enemyType === "shooter"){
+  if (_enemyType === shooter){
     zombiesArray.push(new Shooter());
   }
   
@@ -888,4 +939,17 @@ function debugText(){
     fill("white");
   }
   text("Iframes: " + player.isInIFrames, 50, 50);
+}
+
+function tutorialText(){
+  fill("white");
+  textAlign(CENTER);
+  textStyle(BOLD);
+  let textPos = createVector(width / 2, height * 0.65);
+
+  if (canBeginNextWave){
+    if (waveNum === 0){
+      text();
+    }
+  }
 }
