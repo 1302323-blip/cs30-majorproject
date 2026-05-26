@@ -285,7 +285,8 @@ class Enemy {
 
     this.type = _enemyType;
     this.speed = _spd;
-    this.health = _health;
+    this.maxHealth = _health;
+    this.health = this.maxHealth;
     this.damage = _damage;
     this.bounty = _bounty;
 
@@ -371,25 +372,25 @@ class Enemy {
 
 class Normal extends Enemy {
   constructor(){
-    super(normal, 15, 3, 3, 1, 15, color(100, 250, 100), "black");
+    super(normal, 15, 3, 3, 1, 10, color(100, 250, 100), "black");
   }
 }
 
 class Fast extends Enemy {
   constructor(){
-    super(fast, 12, 5, 2, 2, 20, color(255, 0, 0), "black");
+    super(fast, 12, 5, 2, 2, 15, color(255, 0, 0), "black");
   }
 }
 
 class Strong extends Enemy {
   constructor(){
-    super(strong, 35, 2, 10, 5, 40, color(109, 36, 191), "black");
+    super(strong, 35, 2, 10, 5, 50, color(109, 36, 191), "black");
   }
 }
 
 class Shooter extends Enemy {
   constructor(){
-    super(shooter, 15, 1.2, 3, 1, 15, "blue", "black");
+    super(shooter, 15, 1.2, 3, 1, 20, color(52, 94, 235), "black");
     this.firerate = 4000; // milliseconds
     this.lastTimeFiredBullet = 0;
     this.bulletRadius = 5;
@@ -410,6 +411,48 @@ class Shooter extends Enemy {
   }
 }
 
+class Healer extends Enemy {
+  constructor(){
+    super("healer", 15, 1.7, 6, 1, 25, "green", "black");
+    this.pulseRate = 2000; // milliseconds
+    this.lastTimePulsed = 0;
+    this.pulseRadius = 50;
+    this.healAmount = 2;
+  }
+
+  pulse(){
+    if (this.pos.x > 0 && this.pos.x < width && this.pos.y > 0 && this.pos.y < height){
+      if (this.lastTimePulsed < millis()){
+        this.lastTimePulsed = millis() + this.pulseRate;
+        this.healAllies();
+        console.log("pulse");
+      }
+    }
+  }
+
+  healAllies(){
+    for (let i = zombiesArray.length - 1; i >= 0; i--){
+      if (dist(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y) <= this.radius){
+        if (zombiesArray[i].type !== "healer"){
+          zombiesArray[i].health += this.healAmount;
+
+          if (zombiesArray[i].health > zombiesArray[i].maxHealth){
+            zombiesArray[i].health = zombiesArray[i].maxHealth;
+          }
+          zombiesArray.lastTimeDamaged = millis();
+        }
+      }
+    }
+  }
+}
+
+// unsure if this enemy can be made
+class Bouncer extends Enemy{
+  constructor(){
+    super("bouncer", 15, 1.5, );
+  }
+}
+
 class EnemyBullet {
   constructor(_x, _y, _angle, _radius, _colour, _damage, _spd,){
     this.pos = createVector(_x, _y);
@@ -418,6 +461,7 @@ class EnemyBullet {
     this.radius = _radius;
     this.damage = _damage;
 
+    this.type = "bullet";
     this.colour = _colour;
   }
 
@@ -443,6 +487,34 @@ class EnemyBullet {
     return isOffscreen;
   }
 }
+
+// class EnemyHealPulse {
+//   constructor(_x, _y, _radius, _colour, _healAmount){
+//     this.pos = createVector(_x, _y);
+//     this.radius = _radius;
+//     this.healAmount = _healAmount;
+
+//     this.type = "pulse";
+//     this.colour = _colour;
+//     this.alpha = 100;
+//   }
+
+
+
+//   healAllies(){
+//     for (let i = zombiesArray.length - 1; i >= 0; i--){
+//       if (dist(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y) <= this.radius){
+//         if (zombiesArray[i].type !== "healer"){
+//           zombiesArray[i].health += this.healAmount;
+
+//           if (zombiesArray[i].health > zombiesArray[i].maxHealth){
+//             zombiesArray[i].health = zombiesArray[i].maxHealth;
+//           }
+//         }
+//       }
+//     }
+//   }
+// }
 
 
 class UpgradesShop {
@@ -496,6 +568,7 @@ class UpgradesShop {
       textAlign(CENTER);
       fill("black");
       textSize(30);
+      textStyle(BOLD);
       text("T", this.openShopButtonPos.x, this.openShopButtonPos.y + 30);
       if (!this.isOpened){
         this.currentRadius = this.intermissionRadius;
@@ -523,7 +596,8 @@ class UpgradesShop {
 
   displayTextUI(){
     noStroke();
-    textSize(12);
+    let shopTextSize = 15;
+    textSize(shopTextSize);
     textStyle(BOLD);
     textAlign(CENTER);
     fill("white");
@@ -538,21 +612,21 @@ class UpgradesShop {
 
     // max health increase
     text("INCREASE MAX HEALTH (1)", textX1, textY1);
-    text("COST: " + this.healthCost + "   LV: " + this.healthLv, textX1, textY1 + 12);
+    text("COST: " + this.healthCost + "   LV: " + this.healthLv, textX1, textY1 + shopTextSize);
 
     // bullet damage increase
     text("INCREASE BULLET DAMAGE (2)", textX1, textY2);
-    text("COST: " + this.bulletDmgCost + "   LV: " + this.bulletDmgLv, textX1, textY2 + 12);
+    text("COST: " + this.bulletDmgCost + "   LV: " + this.bulletDmgLv, textX1, textY2 + shopTextSize);
 
     // text("INCREASE MAX HEALTH (Y)", textX1, textY3);
     // text("COST: " + this.healthCost + "   LV: " + this.healthLv, textX1, textY3 + 12);
 
 
     text("INCREASE MOVEMENT SPEED(3)", textX2, textY1);
-    text("COST: " + this.movementSpdCost + "   LV: " + this.movementSpdLv, textX2, textY1 + 12);
+    text("COST: " + this.movementSpdCost + "   LV: " + this.movementSpdLv, textX2, textY1 + shopTextSize);
 
     text("INCREASE BULLET FIRE RATE (4)", textX2, textY2);
-    text("COST: " + this.bulletFirerateCost + "   LV: " + this.bulletFirerateLv, textX2, textY2 + 12);
+    text("COST: " + this.bulletFirerateCost + "   LV: " + this.bulletFirerateLv, textX2, textY2 + shopTextSize);
 
     // text("INCREASE MAX HEALTH (Y)", textX2, textY3);
     // text("COST: " + this.healthCost + "   LV: " + this.healthLv, textX2, textY3 + 12);
@@ -686,6 +760,7 @@ function draw(){
 
   // class management
   player.displayHealthUI();
+  tutorialText();
   manageShopFunctions();
   manageZombieProjectileFunctions();
   manageBulletFunctions();
@@ -740,8 +815,11 @@ function manageZombieFunctions(){
 }
 
 function specialZombieFunctions(zombie){
-  if (zombie.type === "shooter"){
+  if (zombie.type === shooter){
     zombie.shoot();
+  }
+  if (zombie.type === "healer"){
+    zombie.pulse();
   }
 }
 
@@ -761,30 +839,39 @@ let normal = "normal";
 let fast = "fast";
 let strong = "strong";
 let shooter = "shooter";
+// let bouncer = "bouncer";
 
 function zombieWaveManager(){
   // intervals are written in seconds
   if (waveNum === 1){
-    spawnZombies(normal, 6, 1, 1);
-    spawnZombies(normal, 5, 0.3, 2);
+    // spawnZombies(normal, 4, 1, 1);
+    // spawnZombies(normal, 4, 0.3, 2);
+    spawnZombies("healer", 3, 1, 1);
+    spawnZombies(strong, 1, 1, 2);
+
+    // areAllZombiesSpawned(2);
     areAllZombiesSpawned(2);
   }
   if (waveNum === 2){
-    spawnZombies(fast, 5, 0.5, 1);
-    spawnZombies(normal, 7, 0.7, 2);
-    spawnZombies(fast, 3, 0.1, 3);
+    spawnZombies(fast, 4, 0.6, 1);
+    spawnZombies(normal, 6, 0.7, 2);
+    spawnZombies(fast, 3, 0.4, 3);
+
     areAllZombiesSpawned(3);
   }
   if (waveNum === 3){
-    spawnZombies(normal, 8, 0.4, 1);
-    spawnZombies(strong, 3, 1, 2);
+    spawnZombies(fast, 10, 0.8, 1);
+    spawnZombies(fast, 5, 0.1, 2);
+
     areAllZombiesSpawned(2);
   }
   if (waveNum === 4){
-    spawnZombies(strong, 2, 1, 1);
-    spawnZombies(fast, 10, 0.6, 2);
-    spawnZombies(strong, 2, 0.5, 3);
-    areAllZombiesSpawned(3);
+    spawnZombies(strong, 1, 1, 1);
+    spawnZombies(fast, 4, 0.6, 2);
+    spawnZombies(normal, 6, 0.5, 3);
+    spawnZombies(strong, 2, 1, 4);
+
+    areAllZombiesSpawned(4);
   }
   if (waveNum === 5){
     spawnZombies(normal, 8, 0.4, 1);
@@ -793,34 +880,32 @@ function zombieWaveManager(){
 
     spawnZombies(normal, 10, 0.6, 4);
     spawnZombies(fast, 6, 0.5, 5);
-    spawnZombies(strong, 3, 0.8, 6);
+    spawnZombies(strong, 2, 0.8, 6);
 
     areAllZombiesSpawned(6);
   }
   if (waveNum === 6){
-    spawnZombies(normal, 7, 0.5, 1);
-    spawnZombies(shooter, 6, 0.8, 2);
-    spawnZombies(strong, 1, 0.1, 3);
-    spawnZombies(normal, 12, 0.7, 4);
+    spawnZombies(normal, 6, 0.5, 1);
+    spawnZombies(shooter, 3, 0.8, 2);
+    spawnZombies(normal, 8, 0.7, 3);
+    spawnZombies(shooter, 5, 0.8, 4);
+
     areAllZombiesSpawned(4);
   }
-}
+  if (waveNum === 7){
+    spawnZombies(strong, 1, 0.3, 1);
+    spawnZombies(shooter, 5, 0.5, 2);
+    spawnZombies(fast, 5, 0.5, 3);
 
+    spawnZombies(strong, 1, 0.3, 4);
+    spawnZombies(shooter, 7, 0.4, 5);
+    spawnZombies(fast, 8, 0.5, 6);
 
-// spawns zombies in each miniWave, determining amount and intervals between each spawn
-function spawnZombies(_enemyType, _amount, _spawnInterval, _miniWaveNum){
-  // sets _spawnInterval to millis() to make if statements work
-  _spawnInterval *= 1000;
-  if (miniWave === _miniWaveNum){
-    if (millis() > lastSpawnTime + _spawnInterval){
-      zombieTypeToSpawn(_enemyType);
-      lastSpawnTime = millis();
-      enemySpawnedCounter += 1;
-    }
-    if (enemySpawnedCounter === _amount){
-      miniWave += 1;
-      enemySpawnedCounter = 0;
-    }
+    areAllZombiesSpawned(6);
+  }
+  if (waveNum === 8){
+    spawnZombies(fast, 25, 0.1, 1);
+    areAllZombiesSpawned(1);
   }
 }
 
@@ -838,11 +923,26 @@ function zombieTypeToSpawn(_enemyType){
   if (_enemyType === shooter){
     zombiesArray.push(new Shooter());
   }
-  
-  // template for new enemy spawns for function
-  // if (_enemyType === "_"){
-  //   zombiesArray.push(new _());
-  // }
+  if (_enemyType === "healer"){
+    zombiesArray.push(new Healer());
+  }
+}
+
+// spawns zombies in each miniWave, determining amount and intervals between each spawn
+function spawnZombies(_enemyType, _amount, _spawnInterval, _miniWaveNum){
+  // sets _spawnInterval to millis() to make if statements work
+  _spawnInterval *= 1000;
+  if (miniWave === _miniWaveNum){
+    if (millis() > lastSpawnTime + _spawnInterval){
+      zombieTypeToSpawn(_enemyType);
+      lastSpawnTime = millis();
+      enemySpawnedCounter += 1;
+    }
+    if (enemySpawnedCounter === _amount){
+      miniWave += 1;
+      enemySpawnedCounter = 0;
+    }
+  }
 }
 
 // tracks if all zombies part of a whole wave have been spawned
@@ -942,14 +1042,28 @@ function debugText(){
 }
 
 function tutorialText(){
-  fill("white");
-  textAlign(CENTER);
-  textStyle(BOLD);
   let textPos = createVector(width / 2, height * 0.65);
+  let tutorialTextSize = 22;
+  fill("white");
+  textSize(tutorialTextSize);
+  textAlign(CENTER);
+  textStyle(NORMAL);
 
   if (canBeginNextWave){
     if (waveNum === 0){
-      text();
+      text("Use WASD to move around", textPos.x, textPos.y);
+      text("Hold the mouse button to shoot bullets", textPos.x, textPos.y + tutorialTextSize * 2);
+      text("Shoot the approaching blobs", textPos.x, textPos.y + tutorialTextSize * 4);
+
+      text("Press the space bar to begin", textPos.x, textPos.y - tutorialTextSize * 12);
+    }
+    if (waveNum === 2){
+      text("Press ' T ' to open up the shop", textPos.x, textPos.y);
+      text("Use the number keys to purchase specific upgrades", textPos.x, textPos.y + tutorialTextSize * 2);
+    }
+    if (waveNum === 6){
+      text("Some enemies can shoot bullets of their own", textPos.x, textPos.y);
+      text("Make sure to avoid them", textPos.x, textPos.y + tutorialTextSize * 2);
     }
   }
 }
