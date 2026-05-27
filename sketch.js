@@ -416,14 +416,32 @@ class Healer extends Enemy {
     super("healer", 15, 1.7, 6, 1, 25, "green", "black");
     this.pulseRate = 2000; // milliseconds
     this.lastTimePulsed = 0;
-    this.pulseRadius = 50;
+    this.pulseRadius = 200;
     this.healAmount = 2;
+
+    this.currentPulseColour;
+    this.pulseColour = this.fillColour;
+    this.pulseColourIsHealing = this.damagedFillColour;
+  }
+
+  // for some reason, the line goes over the enemies, which isn't what's wanted
+  alliesInRange(){
+    for (let i = zombiesArray.length - 1; i >= 0; i--){
+      if (this !== zombiesArray[i] && zombiesArray[i].type !== "healer"){
+        if (dist(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y) < this.pulseRadius){
+          stroke(this.fillColour);
+          strokeWeight(2);
+          line(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y);
+          strokeWeight(1);
+        }
+      }
+    }
   }
 
   pulse(){
     if (this.pos.x > 0 && this.pos.x < width && this.pos.y > 0 && this.pos.y < height){
-      if (this.lastTimePulsed < millis()){
-        this.lastTimePulsed = millis() + this.pulseRate;
+      if (this.lastTimePulsed + this.pulseRate < millis()){
+        this.lastTimePulsed = millis();
         this.healAllies();
         console.log("pulse");
       }
@@ -432,13 +450,27 @@ class Healer extends Enemy {
 
   healAllies(){
     for (let i = zombiesArray.length - 1; i >= 0; i--){
-      if (dist(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y) <= this.radius){
-        if (zombiesArray[i].type !== "healer"){
+      // if (this !== zombiesArray[i] && zombiesArray[i].type === "healer"){
+      //   if (dist(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y) < this.radius){
+      //     zombiesArray[i].health += this.healAmount;
+
+      //     if (zombiesArray[i].health > zombiesArray[i].maxHealth){
+      //       zombiesArray[i].health = zombiesArray[i].maxHealth;
+      //     }
+      //     console.log("healed: " + zombiesArray[i].health);
+
+      //     zombiesArray.lastTimeDamaged = millis();
+      //   }
+      // }
+      if (this !== zombiesArray[i] && zombiesArray[i].type !== "healer"){
+        if (dist(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y) < this.pulseRadius){
           zombiesArray[i].health += this.healAmount;
 
           if (zombiesArray[i].health > zombiesArray[i].maxHealth){
             zombiesArray[i].health = zombiesArray[i].maxHealth;
           }
+          console.log("healed: " + zombiesArray[i].health);
+
           zombiesArray.lastTimeDamaged = millis();
         }
       }
@@ -487,35 +519,6 @@ class EnemyBullet {
     return isOffscreen;
   }
 }
-
-// class EnemyHealPulse {
-//   constructor(_x, _y, _radius, _colour, _healAmount){
-//     this.pos = createVector(_x, _y);
-//     this.radius = _radius;
-//     this.healAmount = _healAmount;
-
-//     this.type = "pulse";
-//     this.colour = _colour;
-//     this.alpha = 100;
-//   }
-
-
-
-//   healAllies(){
-//     for (let i = zombiesArray.length - 1; i >= 0; i--){
-//       if (dist(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y) <= this.radius){
-//         if (zombiesArray[i].type !== "healer"){
-//           zombiesArray[i].health += this.healAmount;
-
-//           if (zombiesArray[i].health > zombiesArray[i].maxHealth){
-//             zombiesArray[i].health = zombiesArray[i].maxHealth;
-//           }
-//         }
-//       }
-//     }
-//   }
-// }
-
 
 class UpgradesShop {
   constructor(){
@@ -804,11 +807,10 @@ function manageBulletFunctions(){
 
 function manageZombieFunctions(){
   for (let i = zombiesArray.length - 1; i >= 0; i--){
+    specialZombieFunctions(zombiesArray[i]);
     zombiesArray[i].display();
     zombiesArray[i].movement();
     zombiesArray[i].takeDamage();
-
-    specialZombieFunctions(zombiesArray[i]);
 
     zombiesArray[i].killZombie();
   }
@@ -820,6 +822,7 @@ function specialZombieFunctions(zombie){
   }
   if (zombie.type === "healer"){
     zombie.pulse();
+    zombie.alliesInRange();
   }
 }
 
