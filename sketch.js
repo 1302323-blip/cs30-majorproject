@@ -45,7 +45,6 @@ class Player {
     this.angle;
     this.speed = 5; // 5.5
     this.size = 30; // 30
-    console.log(this.size);
     this.colour = color(255);
     this.currentColour = this.colour;
 
@@ -135,7 +134,7 @@ class Player {
   collideWithZombie(){
     if (!this.isInIFrames){
       for (let i = zombiesArray.length - 1; i >= 0; i--){
-        if (dist(zombiesArray[i].pos.x, zombiesArray[i].pos.y, this.pos.x, this.pos.y) < this.size * 0.9){
+        if (dist(zombiesArray[i].pos.x, zombiesArray[i].pos.y, this.pos.x, this.pos.y) < (zombiesArray[i].radius + this.size / 2) * 0.85){
           this.lastHitBy = "zombie";
           this.takeDamage(zombiesArray[i].damage);
           this.knockBackAngle = zombiesArray[i].angle;
@@ -180,8 +179,6 @@ class Player {
 
     tookDmgSFX.setVolume(0.7);
     tookDmgSFX.play();
-    
-    console.log(this.health);
   }
 
   // knocks player back when they get hit by an enemy
@@ -295,7 +292,9 @@ class Enemy {
     this.strokeColour = _strokeColour;
     this.currentFillColour = this.fillColour;
     this.damagedFillColour = color(255);
+    this.healedFillColour = color(199, 252, 206);
     this.lastTimeDamaged = 0;
+    this.lastTimeHealed = 0;
 
     // spawn enemy in random location
     if (random(1) < 0.5){
@@ -345,13 +344,17 @@ class Enemy {
 
   determineFillColour(){
     let flashTime = 100; // milliseconds
-    // stay normal colour
-    if (millis() >= this.lastTimeDamaged + flashTime){
-      this.currentFillColour = this.fillColour;
-    }
-    //flash
-    else {
+    // damage flash
+    if (millis() < this.lastTimeDamaged + flashTime){
       this.currentFillColour = this.damagedFillColour;
+    }
+    // heal flash
+    else if (millis() < this.lastTimeHealed + flashTime){
+      this.currentFillColour = this.healedFillColour;
+    }
+    // stay normal colour
+    else {
+      this.currentFillColour = this.fillColour;
     }
 
     fill(this.currentFillColour);
@@ -372,25 +375,31 @@ class Enemy {
 
 class Normal extends Enemy {
   constructor(){
-    super(normal, 15, 3, 3, 1, 10, color(100, 250, 100), "black");
+    super(normal, 15, 3, 3, 1, 10, color(252, 144, 43), "black");
+  }
+}
+
+class Guardian extends Enemy {
+  constructor(){
+    super("guardian", 20, 2.6, 6, 2, 25, color(252, 122, 0), "black");
   }
 }
 
 class Fast extends Enemy {
   constructor(){
-    super(fast, 12, 5, 2, 2, 15, color(255, 0, 0), "black");
+    super(fast, 12, 5, 2, 2, 15, color(247, 221, 69), "black");
   }
 }
 
 class Strong extends Enemy {
   constructor(){
-    super(strong, 35, 2, 10, 5, 50, color(109, 36, 191), "black");
+    super(strong, 35, 2, 10, 5, 50, color(245, 69, 66), "black");
   }
 }
 
 class Shooter extends Enemy {
   constructor(){
-    super(shooter, 15, 1.2, 3, 1, 20, color(52, 94, 235), "black");
+    super(shooter, 15, 1.2, 4, 1, 20, color(92, 66, 237), "black");
     this.firerate = 4000; // milliseconds
     this.lastTimeFiredBullet = 0;
     this.bulletRadius = 5;
@@ -402,7 +411,7 @@ class Shooter extends Enemy {
     if (this.pos.x > 0 && this.pos.x < width && this.pos.y > 0 && this.pos.y < height){
       if (this.lastTimeFiredBullet < millis()){
         this.lastTimeFiredBullet = millis() + this.firerate;
-        zombieProjectileArray.push(new EnemyBullet(this.pos.x, this.pos.y, this.angle, this.bulletRadius, "blue", this.bulletDamage, this.bulletSpd,)); // also use angle offset potentially
+        zombieProjectileArray.push(new EnemyBullet(this.pos.x, this.pos.y, this.angle, this.bulletRadius, this.fillColour, this.bulletDamage, this.bulletSpd,)); // also use angle offset potentially
         
         enemyBulletShootSFX.setVolume(0.2);
         enemyBulletShootSFX.play();
@@ -413,7 +422,7 @@ class Shooter extends Enemy {
 
 class Healer extends Enemy {
   constructor(){
-    super("healer", 15, 1.7, 6, 1, 25, "green", "black");
+    super(healer, 15, 1.7, 6, 1, 25, color(62, 214, 65), "black");
     this.pulseRate = 2000; // milliseconds
     this.lastTimePulsed = 0;
     this.pulseRadius = 200;
@@ -421,15 +430,26 @@ class Healer extends Enemy {
 
     this.currentPulseColour;
     this.pulseColour = this.fillColour;
-    this.pulseColourIsHealing = this.damagedFillColour;
+    this.pulseColourIsHealing = this.healedFillColour;
   }
 
   // for some reason, the line goes over the enemies, which isn't what's wanted
-  alliesInRange(){
+  pulseRangeDisplay(){
+    let flashTime = 100;
+
     for (let i = zombiesArray.length - 1; i >= 0; i--){
-      if (this !== zombiesArray[i] && zombiesArray[i].type !== "healer"){
+      if (this !== zombiesArray[i] && zombiesArray[i].type !== healer){
         if (dist(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y) < this.pulseRadius){
-          stroke(this.fillColour);
+          // normal colour
+          if (millis() >= this.lastTimeHealed + flashTime){
+            this.currentPulseColour = this.pulseColour;
+          }
+          // heal flash
+          else {
+            this.currentPulseColour = this.pulseColourIsHealing;
+          }
+          stroke(this.currentPulseColour);
+
           strokeWeight(2);
           line(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y);
           strokeWeight(1);
@@ -442,36 +462,23 @@ class Healer extends Enemy {
     if (this.pos.x > 0 && this.pos.x < width && this.pos.y > 0 && this.pos.y < height){
       if (this.lastTimePulsed + this.pulseRate < millis()){
         this.lastTimePulsed = millis();
+        this.lastTimeHealed = millis();
         this.healAllies();
-        console.log("pulse");
       }
     }
   }
 
   healAllies(){
     for (let i = zombiesArray.length - 1; i >= 0; i--){
-      // if (this !== zombiesArray[i] && zombiesArray[i].type === "healer"){
-      //   if (dist(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y) < this.radius){
-      //     zombiesArray[i].health += this.healAmount;
-
-      //     if (zombiesArray[i].health > zombiesArray[i].maxHealth){
-      //       zombiesArray[i].health = zombiesArray[i].maxHealth;
-      //     }
-      //     console.log("healed: " + zombiesArray[i].health);
-
-      //     zombiesArray.lastTimeDamaged = millis();
-      //   }
-      // }
-      if (this !== zombiesArray[i] && zombiesArray[i].type !== "healer"){
+      if (this !== zombiesArray[i] && zombiesArray[i].type !== healer){
         if (dist(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y) < this.pulseRadius){
           zombiesArray[i].health += this.healAmount;
 
           if (zombiesArray[i].health > zombiesArray[i].maxHealth){
             zombiesArray[i].health = zombiesArray[i].maxHealth;
           }
-          console.log("healed: " + zombiesArray[i].health);
 
-          zombiesArray.lastTimeDamaged = millis();
+          zombiesArray[i].lastTimeHealed = millis();
         }
       }
     }
@@ -645,8 +652,6 @@ class UpgradesShop {
     if (playerCash >= this.healthCost){
       player.maxHealth += this.healthIncreaseAmount;
       player.health = player.maxHealth;
-      console.log("maxHealth: " + player.maxHealth);
-      console.log("health: " + player.health);
 
       playerCash -= this.healthCost;
       this.healthCost += 100 * (this.healthLv + 1);
@@ -659,7 +664,6 @@ class UpgradesShop {
   bulletDamageUpgrade(){
     if (playerCash >= this.bulletDmgCost){
       player.bulletDamage += this.bulletDmgIncreaseAmount;
-      console.log("bulletDamage: " + player.bulletDamage);
 
       playerCash -= this.bulletDmgCost;
       this.bulletDmgCost += 200 * (this.bulletDmgLv + 1);
@@ -672,7 +676,6 @@ class UpgradesShop {
   movementSpdUpgrade(){
     if (playerCash >= this.movementSpdCost){
       player.speed += this.movementSpdIncreaseAmount;
-      console.log("movementSpd: " + player.speed);
 
       playerCash -= this.movementSpdCost;
       this.movementSpdCost += 225 * (this.movementSpdLv + 1);
@@ -685,7 +688,6 @@ class UpgradesShop {
   bulletFirerateUpgrade(){
     if (playerCash >= this.bulletFirerateCost){
       player.bulletFirerate -= this.bulletFirerateIncreaseAmount;
-      console.log("bulletFiringSpd: " + player.bulletFirerate);
 
       playerCash -= this.bulletFirerateCost;
       this.bulletFirerateCost += 175 * (this.bulletFirerateLv + 1);
@@ -784,7 +786,6 @@ function draw(){
 function managePlayerFunctions(){
   player.movement();
   player.shootBullets();
-  // player.takeDamage();
   player.collideWithZombie();
   player.collideWithZombieBullet();
   player.display();
@@ -808,6 +809,9 @@ function manageBulletFunctions(){
 function manageZombieFunctions(){
   for (let i = zombiesArray.length - 1; i >= 0; i--){
     specialZombieFunctions(zombiesArray[i]);
+  }
+
+  for (let i = zombiesArray.length - 1; i >= 0; i--){
     zombiesArray[i].display();
     zombiesArray[i].movement();
     zombiesArray[i].takeDamage();
@@ -820,9 +824,9 @@ function specialZombieFunctions(zombie){
   if (zombie.type === shooter){
     zombie.shoot();
   }
-  if (zombie.type === "healer"){
+  if (zombie.type === healer){
     zombie.pulse();
-    zombie.alliesInRange();
+    zombie.pulseRangeDisplay();
   }
 }
 
@@ -842,17 +846,15 @@ let normal = "normal";
 let fast = "fast";
 let strong = "strong";
 let shooter = "shooter";
+let healer = "healer";
 // let bouncer = "bouncer";
 
 function zombieWaveManager(){
   // intervals are written in seconds
   if (waveNum === 1){
-    // spawnZombies(normal, 4, 1, 1);
-    // spawnZombies(normal, 4, 0.3, 2);
-    spawnZombies("healer", 3, 1, 1);
-    spawnZombies(strong, 1, 1, 2);
+    spawnZombies(normal, 4, 1, 1);
+    spawnZombies(normal, 4, 0.3, 2);
 
-    // areAllZombiesSpawned(2);
     areAllZombiesSpawned(2);
   }
   if (waveNum === 2){
@@ -907,8 +909,20 @@ function zombieWaveManager(){
     areAllZombiesSpawned(6);
   }
   if (waveNum === 8){
-    spawnZombies(fast, 25, 0.1, 1);
-    areAllZombiesSpawned(1);
+    spawnZombies(normal, 25, 0.1, 1);
+    spawnZombies("guardian", 5, 0.9, 2);
+    spawnZombies(shooter, 6, 0.4, 3);
+
+    areAllZombiesSpawned(3);
+  }
+  if (waveNum === 9){
+    spawnZombies(strong, 2, 0.3, 1);
+    spawnZombies(normal, 8, 0.2, 2);
+    spawnZombies(healer, 3, 1, 3);
+    spawnZombies(strong, 1, 0.2, 4);
+    spawnZombies(shooter, 6, 0.9, 5);
+
+    areAllZombiesSpawned(5);
   }
 }
 
@@ -916,6 +930,9 @@ function zombieWaveManager(){
 function zombieTypeToSpawn(_enemyType){
   if (_enemyType === normal){
     zombiesArray.push(new Normal());
+  }
+  if (_enemyType === "guardian"){
+    zombiesArray.push(new Guardian());
   }
   if (_enemyType === fast){
     zombiesArray.push(new Fast());
@@ -926,7 +943,7 @@ function zombieTypeToSpawn(_enemyType){
   if (_enemyType === shooter){
     zombiesArray.push(new Shooter());
   }
-  if (_enemyType === "healer"){
+  if (_enemyType === healer){
     zombiesArray.push(new Healer());
   }
 }
@@ -1012,19 +1029,15 @@ function keyReleased(){
   if (upgradesShop.isOpened){
     if (key === "1"){
       upgradesShop.maxHealthUpgrade();
-      console.log("Cash: " + playerCash);
     }
     else if (key === "2"){
       upgradesShop.bulletDamageUpgrade();
-      console.log("Cash: " + playerCash);
     }
     else if(key === "3"){
       upgradesShop.movementSpdUpgrade();
-      console.log("Cash: " + playerCash);
     }
     else if (key === "4"){
       upgradesShop.bulletFirerateUpgrade();
-      console.log("Cash: " + playerCash);
     }
   }
 }
@@ -1064,9 +1077,13 @@ function tutorialText(){
       text("Press ' T ' to open up the shop", textPos.x, textPos.y);
       text("Use the number keys to purchase specific upgrades", textPos.x, textPos.y + tutorialTextSize * 2);
     }
-    if (waveNum === 6){
+    if (waveNum === 5){
       text("Some enemies can shoot bullets of their own", textPos.x, textPos.y);
-      text("Make sure to avoid them", textPos.x, textPos.y + tutorialTextSize * 2);
+      text("Make sure to avoid their shots", textPos.x, textPos.y + tutorialTextSize * 2);
+    }
+    if (waveNum === 8){
+      text("If you haven't already, get some damage or fire rate upgrades", textPos.x, textPos.y);
+      text("You'll need it to outdamage their healing", textPos.x * 2, textPos.y + tutorialTextSize * 2);
     }
   }
 }
