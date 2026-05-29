@@ -556,7 +556,7 @@ class UpgradesShop {
     
     this.bulletDmgLv = 0;
     this.bulletDmgCost = 300;
-    this.bulletDmgIncreaseAmount = 0.5;
+    this.bulletDmgIncreaseAmount = 1.25; // 0.5
 
     this.movementSpdLv = 0;
     this.movementSpdCost = 100;
@@ -564,7 +564,7 @@ class UpgradesShop {
 
     this.bulletFirerateLv = 0;
     this.bulletFirerateCost = 250;
-    this.bulletFirerateIncreaseAmount = 25;
+    this.bulletFirerateIncreaseAmount = 0.8; // 30
   }
 
   display(){
@@ -663,7 +663,8 @@ class UpgradesShop {
 
   bulletDamageUpgrade(){
     if (playerCash >= this.bulletDmgCost){
-      player.bulletDamage += this.bulletDmgIncreaseAmount;
+      // player.bulletDamage += this.bulletDmgIncreaseAmount;
+      player.bulletDamage *= this.bulletDmgIncreaseAmount;
 
       playerCash -= this.bulletDmgCost;
       this.bulletDmgCost += 200 * (this.bulletDmgLv + 1);
@@ -686,8 +687,9 @@ class UpgradesShop {
   }
 
   bulletFirerateUpgrade(){
-    if (playerCash >= this.bulletFirerateCost){
-      player.bulletFirerate -= this.bulletFirerateIncreaseAmount;
+    if (playerCash >= this.bulletFirerateCost && player.bulletFirerate > 50){
+      // player.bulletFirerate -= this.bulletFirerateIncreaseAmount;
+      player.bulletFirerate *= this.bulletFirerateIncreaseAmount;
 
       playerCash -= this.bulletFirerateCost;
       this.bulletFirerateCost += 175 * (this.bulletFirerateLv + 1);
@@ -852,7 +854,7 @@ let healer = "healer";
 function zombieWaveManager(){
   // intervals are written in seconds
   if (waveNum === 1){
-    spawnZombies(normal, 4, 1, 1);
+    spawnZombies(normal, 4, 1.3, 1);
     spawnZombies(normal, 4, 0.3, 2);
 
     areAllZombiesSpawned(2);
@@ -866,9 +868,10 @@ function zombieWaveManager(){
   }
   if (waveNum === 3){
     spawnZombies(fast, 10, 0.8, 1);
-    spawnZombies(fast, 5, 0.1, 2);
+    waitToSpawn(2.5, 2);
+    spawnZombies(fast, 5, 0.1, 3);
 
-    areAllZombiesSpawned(2);
+    areAllZombiesSpawned(3);
   }
   if (waveNum === 4){
     spawnZombies(strong, 1, 1, 1);
@@ -909,7 +912,7 @@ function zombieWaveManager(){
     areAllZombiesSpawned(6);
   }
   if (waveNum === 8){
-    spawnZombies(normal, 25, 0.1, 1);
+    spawnZombies(normal, 20, 0.1, 1);
     spawnZombies("guardian", 5, 0.9, 2);
     spawnZombies(shooter, 6, 0.4, 3);
 
@@ -923,6 +926,28 @@ function zombieWaveManager(){
     spawnZombies(shooter, 6, 0.9, 5);
 
     areAllZombiesSpawned(5);
+  }
+  if (waveNum === 10){
+    spawnZombies();
+
+    spawnZombies(strong, 2, 0.5, 1);
+    spawnZombies(healer, 3, 0.5, 2);
+    spawnZombies("guardian", 8, 1, 3);
+    spawnZombies(shooter, 5, 0.3, 4);
+
+    wTSpawnUnderEnemyCount(7, 5);
+
+    spawnZombies(fast, 18, 0.3, 6);
+    spawnZombies("guardian", 6, 0.9, 7);
+
+    wTSpawnUnderEnemyCount(10, 8);
+
+    spawnZombies(shooter, 10, 0.3, 9);
+    spawnZombies("guardian", 8, 0.5, 10);
+    spawnZombies(strong, 3, 0.5, 11);
+    spawnZombies(healer, 3, 0.1, 12);
+
+    areAllZombiesSpawned(12);
   }
 }
 
@@ -959,6 +984,25 @@ function spawnZombies(_enemyType, _amount, _spawnInterval, _miniWaveNum){
       enemySpawnedCounter += 1;
     }
     if (enemySpawnedCounter === _amount){
+      miniWave += 1;
+      enemySpawnedCounter = 0;
+    }
+  }
+}
+
+function waitToSpawn(_seconds, _miniWaveNum){
+  _seconds *= 1000;
+  if (miniWave === _miniWaveNum){
+    if (millis() > lastSpawnTime + _seconds){
+      miniWave += 1;
+      enemySpawnedCounter = 0;
+    }
+  }
+}
+
+function wTSpawnUnderEnemyCount(_enemyCountReq, _miniWaveNum){
+  if (miniWave === _miniWaveNum){
+    if (zombiesArray.length <= _enemyCountReq){
       miniWave += 1;
       enemySpawnedCounter = 0;
     }
@@ -1083,7 +1127,7 @@ function tutorialText(){
     }
     if (waveNum === 8){
       text("If you haven't already, get some damage or fire rate upgrades", textPos.x, textPos.y);
-      text("You'll need it to outdamage their healing", textPos.x * 2, textPos.y + tutorialTextSize * 2);
+      text("You'll need it to outdamage their healing", textPos.x, textPos.y + tutorialTextSize * 2);
     }
   }
 }
