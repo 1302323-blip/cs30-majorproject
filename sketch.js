@@ -30,6 +30,7 @@ let shootBulletSFX;
 let tookDmgSFX;
 
 let enemyBulletShootSFX;
+let enemyHealSFX; //
 let hitEnemySFX;
 let enemyDieSFX;
 
@@ -274,6 +275,7 @@ class Bullet {
   }
 }
 
+// strokeColour prolly isnt needed
 class Enemy {
   constructor(_enemyType, _radius, _spd, _health, _damage, _bounty, _fillColour, _strokeColour){
     this.pos = createVector();
@@ -381,7 +383,7 @@ class Normal extends Enemy {
 
 class Guardian extends Enemy {
   constructor(){
-    super("guardian", 20, 2.6, 6, 2, 25, color(252, 122, 0), "black");
+    super(guardian, 20, 2.6, 6, 2, 25, color(252, 86, 3), "black");
   }
 }
 
@@ -404,7 +406,7 @@ class Shooter extends Enemy {
     this.lastTimeFiredBullet = 0;
     this.bulletRadius = 5;
     this.bulletDamage = 2;
-    this.bulletSpd = 10;
+    this.bulletSpd = 12;
   }
 
   shoot(){
@@ -414,6 +416,30 @@ class Shooter extends Enemy {
         zombieProjectileArray.push(new EnemyBullet(this.pos.x, this.pos.y, this.angle, this.bulletRadius, this.fillColour, this.bulletDamage, this.bulletSpd,)); // also use angle offset potentially
         
         enemyBulletShootSFX.setVolume(0.2);
+        enemyBulletShootSFX.play();
+      }
+    }
+  }
+}
+
+class Sprayer extends Enemy{
+  constructor(){
+    super("sprayer", 20, 0.8, 8, 1, 50, color(66, 19, 186), "black");
+    this.firerate = 250; // milliseconds
+    this.lastTimeFiredBullet = 0;
+    this.bulletRadius = 3.5;
+    this.bulletDamage = 1;
+    this.bulletSpd = 10;
+
+    
+  }
+  shoot(){
+    if (this.pos.x > 0 && this.pos.x < width && this.pos.y > 0 && this.pos.y < height){
+      if (this.lastTimeFiredBullet < millis()){
+        this.lastTimeFiredBullet = millis() + this.firerate;
+        zombieProjectileArray.push(new EnemyBullet(this.pos.x, this.pos.y, this.angle, this.bulletRadius, this.fillColour, this.bulletDamage, this.bulletSpd,)); // also use angle offset potentially
+        
+        enemyBulletShootSFX.setVolume(0.1);
         enemyBulletShootSFX.play();
       }
     }
@@ -431,6 +457,10 @@ class Healer extends Enemy {
     this.currentPulseColour;
     this.pulseColour = this.fillColour;
     this.pulseColourIsHealing = this.healedFillColour;
+
+    this.currentLineSize;
+    this.maxLineSize;
+    this.minLineSize = 1;
   }
 
   // for some reason, the line goes over the enemies, which isn't what's wanted
@@ -439,7 +469,9 @@ class Healer extends Enemy {
 
     for (let i = zombiesArray.length - 1; i >= 0; i--){
       if (this !== zombiesArray[i] && zombiesArray[i].type !== healer){
-        if (dist(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y) < this.pulseRadius){
+        let distanceApart = dist(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y);
+        
+        if (distanceApart < this.pulseRadius){
           // normal colour
           if (millis() >= this.lastTimeHealed + flashTime){
             this.currentPulseColour = this.pulseColour;
@@ -448,9 +480,14 @@ class Healer extends Enemy {
           else {
             this.currentPulseColour = this.pulseColourIsHealing;
           }
-          stroke(this.currentPulseColour);
 
-          strokeWeight(2);
+          // dynamic stroke weight
+          this.maxLineSize = zombiesArray[i].radius * 0.6;
+          let lineSize = map(distanceApart, 0, this.pulseRadius, this.maxLineSize, this.minLineSize);
+          this.currentLineSize = lineSize;
+          
+          stroke(this.currentPulseColour);
+          strokeWeight(this.currentLineSize);
           line(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y);
           strokeWeight(1);
         }
@@ -464,6 +501,8 @@ class Healer extends Enemy {
         this.lastTimePulsed = millis();
         this.lastTimeHealed = millis();
         this.healAllies();
+
+        
       }
     }
   }
@@ -477,7 +516,8 @@ class Healer extends Enemy {
           if (zombiesArray[i].health > zombiesArray[i].maxHealth){
             zombiesArray[i].health = zombiesArray[i].maxHealth;
           }
-
+          enemyHealSFX.setVolume(0.8);
+          enemyHealSFX.play();
           zombiesArray[i].lastTimeHealed = millis();
         }
       }
@@ -543,27 +583,26 @@ class UpgradesShop {
     this.shopBGPos = createVector(width / 2, this.openShopButtonPos.y / 2);
     this.shopBGColour = color(170, 170, 170, 50);
 
-    // may not be needed
-    this.page = 1;
-    this.maxPage = 1;
-
     // shop costs, upgrade lvs, increase values
-    this.maxLvs = 8; // can be used later
 
     this.healthLv = 0;
     this.healthCost = 150;
+    this.healthCostIncrease = 100;
     this.healthIncreaseAmount = 1;
     
     this.bulletDmgLv = 0;
     this.bulletDmgCost = 300;
+    this.bulletDmgCostIncrease = 200;
     this.bulletDmgIncreaseAmount = 1.25; // 0.5
 
     this.movementSpdLv = 0;
     this.movementSpdCost = 100;
+    this.movementSpdCostIncrease = 225;
     this.movementSpdIncreaseAmount = 0.5;
 
     this.bulletFirerateLv = 0;
     this.bulletFirerateCost = 250;
+    this.bulletFirerateCostIncrease = 175;
     this.bulletFirerateIncreaseAmount = 0.8; // 30
   }
 
@@ -654,7 +693,7 @@ class UpgradesShop {
       player.health = player.maxHealth;
 
       playerCash -= this.healthCost;
-      this.healthCost += 100 * (this.healthLv + 1);
+      this.healthCost += this.healthCostIncrease * (this.healthLv + 1);
       this.healthLv += 1;
 
       this.playUpgradeSFX();
@@ -667,7 +706,7 @@ class UpgradesShop {
       player.bulletDamage *= this.bulletDmgIncreaseAmount;
 
       playerCash -= this.bulletDmgCost;
-      this.bulletDmgCost += 200 * (this.bulletDmgLv + 1);
+      this.bulletDmgCost += this.bulletDmgCostIncrease * (this.bulletDmgLv + 1);
       this.bulletDmgLv += 1;
 
       this.playUpgradeSFX();
@@ -679,7 +718,7 @@ class UpgradesShop {
       player.speed += this.movementSpdIncreaseAmount;
 
       playerCash -= this.movementSpdCost;
-      this.movementSpdCost += 225 * (this.movementSpdLv + 1);
+      this.movementSpdCost += this.movementSpdCostIncrease * (this.movementSpdLv + 1);
       this.movementSpdLv += 1;
 
       this.playUpgradeSFX();
@@ -692,17 +731,11 @@ class UpgradesShop {
       player.bulletFirerate *= this.bulletFirerateIncreaseAmount;
 
       playerCash -= this.bulletFirerateCost;
-      this.bulletFirerateCost += 175 * (this.bulletFirerateLv + 1);
+      this.bulletFirerateCost += this.bulletFirerateCostIncrease * (this.bulletFirerateLv + 1);
       this.bulletFirerateLv += 1;
 
       this.playUpgradeSFX();
     }
-  }
-
-  // updates costs + increase values of upgrades depending which level your at
-  updateUpgradeValues(){
-    // max health
-
   }
 
   playUpgradeSFX(){
@@ -718,15 +751,16 @@ class UpgradesShop {
 function preload(){
   gameMusicLoop = loadSound("Assets/n-Dimensions (Main Theme - Retro Ver.mp3");
 
-  shootBulletSFX = loadSound("Assets/SFX/synth_laser_03.ogg"); //
-  tookDmgSFX = loadSound("Assets/SFX/retro_die_01.ogg"); //
+  shootBulletSFX = loadSound("Assets/SFX/synth_laser_03.ogg");
+  tookDmgSFX = loadSound("Assets/SFX/retro_die_01.ogg");
 
-  enemyBulletShootSFX = loadSound("Assets/SFX/synth_laser_04.ogg"); //
-  hitEnemySFX = loadSound("Assets/SFX/shot_01.ogg"); //
-  enemyDieSFX = loadSound("Assets/SFX/retro_die_02.ogg"); //
+  enemyBulletShootSFX = loadSound("Assets/SFX/synth_laser_04.ogg");
+  enemyHealSFX = loadSound("Assets/SFX/heal.wav");
+  hitEnemySFX = loadSound("Assets/SFX/shot_01.ogg");
+  enemyDieSFX = loadSound("Assets/SFX/retro_die_02.ogg");
 
-  openShopSFX = loadSound("Assets/SFX/click.wav"); //
-  buyUpgradeSFX = loadSound("Assets/SFX/power_up_04.ogg"); //
+  openShopSFX = loadSound("Assets/SFX/click.wav");
+  buyUpgradeSFX = loadSound("Assets/SFX/power_up_04.ogg");
 }
 
 function setup(){
@@ -823,7 +857,7 @@ function manageZombieFunctions(){
 }
 
 function specialZombieFunctions(zombie){
-  if (zombie.type === shooter){
+  if (zombie.type === shooter || zombie.type === "sprayer"){
     zombie.shoot();
   }
   if (zombie.type === healer){
@@ -845,6 +879,7 @@ function manageZombieProjectileFunctions(){
 
 
 let normal = "normal";
+let guardian = "guardian";
 let fast = "fast";
 let strong = "strong";
 let shooter = "shooter";
@@ -913,7 +948,7 @@ function zombieWaveManager(){
   }
   if (waveNum === 8){
     spawnZombies(normal, 20, 0.1, 1);
-    spawnZombies("guardian", 5, 0.9, 2);
+    spawnZombies(guardian, 5, 0.9, 2);
     spawnZombies(shooter, 6, 0.4, 3);
 
     areAllZombiesSpawned(3);
@@ -932,18 +967,18 @@ function zombieWaveManager(){
 
     spawnZombies(strong, 2, 0.5, 1);
     spawnZombies(healer, 3, 0.5, 2);
-    spawnZombies("guardian", 8, 1, 3);
+    spawnZombies(guardian, 8, 1, 3);
     spawnZombies(shooter, 5, 0.3, 4);
 
     wTSpawnUnderEnemyCount(7, 5);
 
     spawnZombies(fast, 18, 0.3, 6);
-    spawnZombies("guardian", 6, 0.9, 7);
+    spawnZombies(guardian, 6, 0.9, 7);
 
     wTSpawnUnderEnemyCount(10, 8);
 
     spawnZombies(shooter, 10, 0.3, 9);
-    spawnZombies("guardian", 8, 0.5, 10);
+    spawnZombies(guardian, 8, 0.5, 10);
     spawnZombies(strong, 3, 0.5, 11);
     spawnZombies(healer, 3, 0.1, 12);
 
@@ -956,7 +991,7 @@ function zombieTypeToSpawn(_enemyType){
   if (_enemyType === normal){
     zombiesArray.push(new Normal());
   }
-  if (_enemyType === "guardian"){
+  if (_enemyType === guardian){
     zombiesArray.push(new Guardian());
   }
   if (_enemyType === fast){
@@ -967,6 +1002,9 @@ function zombieTypeToSpawn(_enemyType){
   }
   if (_enemyType === shooter){
     zombiesArray.push(new Shooter());
+  }
+  if (_enemyType === "sprayer"){
+    zombiesArray.push(new Sprayer());
   }
   if (_enemyType === healer){
     zombiesArray.push(new Healer());
