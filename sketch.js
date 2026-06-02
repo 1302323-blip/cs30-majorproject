@@ -9,6 +9,7 @@
 let player;
 
 let playerBulletsArray = [];
+let playerBombExplodeArray = [];
 let zombiesArray = [];
 let zombieProjectileArray = [];
 
@@ -44,17 +45,24 @@ class Player {
     this.pos = createVector(width/2, height / 2);
     this.dir = createVector(0, 0);
     this.angle;
-    this.speed = 5; // 5.5
-    this.size = 30; // 30
+    this.speed = 5;
+    this.size = 30;
     this.colour = color(255);
     this.currentColour = this.colour;
 
     this.maxHealth = 10;
     this.health = this.maxHealth;
-    this.bulletFirerate = 400; // milli-seconds (300)
+
+    // bullets
+    this.bulletFirerate = 400; // milli-seconds
+    this.bulletDamage = 1;
+    // bombs
+    this.bombFirerate = 850;
+    this.bombDamage = 1;
+
+    this.currentWeapon = "bullet"; // bullet, bomb
     this.lastTimeFiredBullet = 0;
-    this.bulletDamage = 1; // 1
-    
+
     this.iFramesLength = 1000; // milli-seconds
     this.isInIFrames = false;
     this.lastTookDamage = 0;
@@ -123,12 +131,26 @@ class Player {
   }
 
   shootBullets(){
-    if (mouseIsPressed && this.lastTimeFiredBullet < millis()){
-      this.lastTimeFiredBullet = millis() + this.bulletFirerate;
-      playerBulletsArray.push(new Bullet(this.pos.x, this.pos.y, this.angle, this.bulletDamage));
+    if (this.currentWeapon === "bullet"){
+      if (mouseIsPressed && this.lastTimeFiredBullet < millis()){
+        this.lastTimeFiredBullet = millis() + this.bulletFirerate;
+        playerBulletsArray.push(new Bullet(this.pos.x, this.pos.y, this.angle, this.bulletDamage));
 
-      shootBulletSFX.setVolume(0.3);
-      shootBulletSFX.play();
+        shootBulletSFX.setVolume(0.3);
+        shootBulletSFX.play();
+      }
+    }
+  }
+
+  shootBombs(){
+    if (this.currentWeapon === "bomb"){
+      if (mouseIsPressed && this.lastTimeFiredBullet < millis()){
+        this.lastTimeFiredBullet = millis() + this.bombFirerate;
+        playerBulletsArray.push(new Bomb(this.pos.x, this.pos.y, this.angle, this.bombDamage));
+
+        shootBulletSFX.setVolume(0.5);
+        shootBulletSFX.play();
+      }
     }
   }
 
@@ -250,6 +272,7 @@ class Bullet {
     this.damage = _damage;
 
     this.colour = color("yellow");
+    this.type = "bullet";
   }
 
   display(){
@@ -265,7 +288,7 @@ class Bullet {
 
   isOffScreen(){
     let isOffscreen = false;
-    if (this.pos.x < -this.radius || this.pos.x > width - this.radius || this.pos.y < -this.radius || this.pos.y > height - this.radius){
+    if (this.pos.x < -this.radius || this.pos.x > width + this.radius || this.pos.y < -this.radius || this.pos.y > height + this.radius){
       isOffscreen = true;
     }
     else {
@@ -274,6 +297,85 @@ class Bullet {
     return isOffscreen;
   }
 }
+
+class Bomb {
+  constructor(_x, _y, _angle, _damage){
+    this.pos = createVector(_x, _y);
+    this.angle = _angle;
+    this.speed = 8;
+    this.radius = 8;
+    this.damage = _damage;
+    this.bombRadius = 250;
+
+    this.colour = color(245, 114, 7);
+    this.type = "bomb";
+  }
+
+  display(){
+    noStroke();
+    fill(this.colour);
+    circle(this.pos.x, this.pos.y, this.radius * 2);
+  }
+
+  movement(){
+    this.pos.x += this.speed * cos(this.angle);
+    this.pos.y += this.speed * sin(this.angle);
+  }
+
+  isOffScreen(){
+    let isOffscreen = false;
+    if (this.pos.x < -this.radius || this.pos.x > width + this.radius || this.pos.y < -this.radius || this.pos.y > height + this.radius){
+      isOffscreen = true;
+    }
+    else {
+      isOffscreen = false;
+    }
+    return isOffscreen;
+  }
+
+  explode(){
+    console.log("explode");
+    playerBombExplodeArray.push(new PlayerExplosion(this.damage, 250, this.pos.x, this.pos.y, this.colour));
+  }
+}
+
+class PlayerExplosion {
+  constructor(_damage, _radius, _x, _y, _colour){
+    this.pos = createVector(_x, _y);
+    this.damage = _damage;
+    this.radius = _radius;
+    this.colour = _colour;
+    this.alpha = 100;
+
+    this.damageEnemy();
+  }
+
+  // need to make see-through effect work better
+  display(){
+    noStroke();
+    fill(this.colour, this.alpha);
+    circle(this.pos.x, this.pos.y, this.radius * 2);
+    this.alpha -= 1;
+
+    if (this.alpha <= 0){
+      let index = playerBombExplodeArray.indexOf(this);
+      playerBombExplodeArray.splice(index, 1);
+    }
+  }
+
+  damageEnemy(){
+    for (let i = zombiesArray.length - 1; i >=0; i--){
+      if (dist(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y) <= this.radius * 0.95){
+        zombiesArray[i].health -= this.damage;
+        zombiesArray[i].lastTimeDamaged = millis();
+
+        hitEnemySFX.setVolume(0.8);
+        hitEnemySFX.play();
+      }
+    }
+  }
+}
+
 
 // strokeColour prolly isnt needed
 class Enemy {
@@ -333,10 +435,15 @@ class Enemy {
   takeDamage(){
     for (let i = playerBulletsArray.length - 1; i >= 0; i--){
       if (dist(playerBulletsArray[i].pos.x, playerBulletsArray[i].pos.y, this.pos.x, this.pos.y) < this.radius * 1.1){
-        this.health -= playerBulletsArray[i].damage;
-        playerBulletsArray.splice(i, 1);
+        if (playerBulletsArray[i].type === "bullet"){
+          this.health -= playerBulletsArray[i].damage;
+          this.lastTimeDamaged = millis();
+        }
+        else if (playerBulletsArray[i].type === "bomb"){
+          playerBulletsArray[i].explode();
+        }
 
-        this.lastTimeDamaged = millis();
+        playerBulletsArray.splice(i, 1);
 
         hitEnemySFX.setVolume(0.8);
         hitEnemySFX.play();
@@ -389,14 +496,41 @@ class Guardian extends Enemy {
 
 class Fast extends Enemy {
   constructor(){
-    super(fast, 12, 5, 2, 2, 15, color(247, 221, 69), "black");
+    super(fast, 12, 4.5, 2, 2, 15, color(247, 221, 69), "black");
+  }
+}
+
+class Bolt extends Enemy {
+  constructor(){
+    super("bolt", 12, 9, 3, 3, 35, color(255, 255, 92), "black");
   }
 }
 
 class Strong extends Enemy {
   constructor(){
-    super(strong, 35, 2, 10, 5, 50, color(245, 69, 66), "black");
+    super(strong, 35, 2, 12, 5, 50, color(245, 69, 66), "black");
   }
+}
+
+class Brute extends Enemy {
+  constructor(){
+    super("brute", 42, 1.4, 25, 8, 150, color(173, 0, 0), "black");
+    // this.pulseRate = 4000;
+    // this.lastTimePulsed = 0;
+    // this.pulseRadius = this.radius * 3;
+    // this.pulseDamage = 2;
+  }
+
+  // could maybe not be needed
+
+  // pulse(){
+  //   if (this.pos.x > 0 && this.pos.x < width && this.pos.y > 0 && this.pos.y < height){
+  //     if (this.lastTimePulsed + this.pulseRate < millis()){
+  //       this.lastTimePulsed = millis();
+        
+  //     }
+  //   }
+  // }
 }
 
 class Shooter extends Enemy {
@@ -411,8 +545,8 @@ class Shooter extends Enemy {
 
   shoot(){
     if (this.pos.x > 0 && this.pos.x < width && this.pos.y > 0 && this.pos.y < height){
-      if (this.lastTimeFiredBullet < millis()){
-        this.lastTimeFiredBullet = millis() + this.firerate;
+      if (this.lastTimeFiredBullet + this.firerate < millis()){
+        this.lastTimeFiredBullet = millis();
         zombieProjectileArray.push(new EnemyBullet(this.pos.x, this.pos.y, this.angle, this.bulletRadius, this.fillColour, this.bulletDamage, this.bulletSpd,)); // also use angle offset potentially
         
         enemyBulletShootSFX.setVolume(0.2);
@@ -522,13 +656,6 @@ class Healer extends Enemy {
         }
       }
     }
-  }
-}
-
-// unsure if this enemy can be made
-class Bouncer extends Enemy{
-  constructor(){
-    super("bouncer", 15, 1.5, );
   }
 }
 
@@ -822,6 +949,7 @@ function draw(){
 function managePlayerFunctions(){
   player.movement();
   player.shootBullets();
+  player.shootBombs();
   player.collideWithZombie();
   player.collideWithZombieBullet();
   player.display();
@@ -839,6 +967,9 @@ function manageBulletFunctions(){
     if (playerBulletsArray[i].isOffScreen()){
       playerBulletsArray.splice(i, 1);
     }
+  }
+  for (let i = playerBombExplodeArray.length - 1; i >= 0; i--){
+    playerBombExplodeArray[i].display();
   }
 }
 
@@ -881,10 +1012,12 @@ function manageZombieProjectileFunctions(){
 let normal = "normal";
 let guardian = "guardian";
 let fast = "fast";
+let bolt = "bolt";
 let strong = "strong";
+let brute = "brute";
 let shooter = "shooter";
+let sprayer = "sprayer";
 let healer = "healer";
-// let bouncer = "bouncer";
 
 function zombieWaveManager(){
   // intervals are written in seconds
@@ -997,8 +1130,14 @@ function zombieTypeToSpawn(_enemyType){
   if (_enemyType === fast){
     zombiesArray.push(new Fast());
   }
+  if (_enemyType === "bolt"){
+    zombiesArray.push(new Bolt());
+  }
   if (_enemyType === strong){
     zombiesArray.push(new Strong());
+  }
+  if (_enemyType === "brute"){
+    zombiesArray.push(new Brute());
   }
   if (_enemyType === shooter){
     zombiesArray.push(new Shooter());
@@ -1098,6 +1237,17 @@ function manageShopFunctions(){
 
 // controls navigation + purchases in shop using keybinds
 function keyReleased(){
+  // switching between weapons
+  if (key === "e"){
+    if (player.currentWeapon === "bullet"){
+      player.currentWeapon = "bomb";
+    }
+    else if (player.currentWeapon === "bomb"){
+      player.currentWeapon = "bullet";
+    }
+    console.log(player.currentWeapon);
+  }
+
   // pressing t opens the shop
   if (key === "t" && canBeginNextWave){
     upgradesShop.isOpened = !upgradesShop.isOpened;
@@ -1158,6 +1308,10 @@ function tutorialText(){
     if (waveNum === 2){
       text("Press ' T ' to open up the shop", textPos.x, textPos.y);
       text("Use the number keys to purchase specific upgrades", textPos.x, textPos.y + tutorialTextSize * 2);
+    }
+    if (waveNum === 4){
+      text("Purchasing the max health upgrade also fully heals you", textPos.x, textPos.y);
+      text("Use this to your advantage", textPos.x, textPos.y + tutorialTextSize * 2);
     }
     if (waveNum === 5){
       text("Some enemies can shoot bullets of their own", textPos.x, textPos.y);
