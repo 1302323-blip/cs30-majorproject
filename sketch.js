@@ -47,7 +47,7 @@ class Player {
     this.angle;
     this.speed = 5;
     this.size = 30;
-    this.colour = color(255);
+    this.colour = color(255, 255, 255, 255);
     this.currentColour = this.colour;
 
     this.maxHealth = 10;
@@ -59,6 +59,7 @@ class Player {
     // bombs
     this.bombFirerate = 850;
     this.bombDamage = 1;
+    this.bombExplosionRadius = 159;
 
     this.currentWeapon = "bullet"; // bullet, bomb
     this.lastTimeFiredBullet = 0;
@@ -73,7 +74,7 @@ class Player {
     this.lastHitBy; // zombie/projectile
 
     // effects for when damaged
-    this.flashingColour = color(0);
+    this.flashingColour = color(0, 0, 0, 0);
     this.lastTimeFlashed = 0;
     this.flashedLastInterval = false;
 
@@ -114,15 +115,16 @@ class Player {
 
   display(){
     if (!this.isInIFrames){
+      stroke("black");
       this.currentColour = this.colour;
       this.totalKnockBackIntervals = 0;
     }
+    this.damageFlashingEffect();
     
     push();
     translate(this.pos.x, this.pos.y);
     this.angle = atan2(mouseY - this.pos.y, mouseX - this.pos.x);
     fill(this.currentColour);
-    stroke("black");
     rotate(this.angle);
     rectMode(CENTER);
     square(0, 0, this.size);
@@ -146,7 +148,7 @@ class Player {
     if (this.currentWeapon === "bomb"){
       if (mouseIsPressed && this.lastTimeFiredBullet < millis()){
         this.lastTimeFiredBullet = millis() + this.bombFirerate;
-        playerBulletsArray.push(new Bomb(this.pos.x, this.pos.y, this.angle, this.bombDamage));
+        playerBulletsArray.push(new Bomb(this.pos.x, this.pos.y, this.angle, this.bombDamage, this.bombExplosionRadius));
 
         shootBulletSFX.setVolume(0.5);
         shootBulletSFX.play();
@@ -167,7 +169,6 @@ class Player {
     }
     else if (this.lastHitBy === "zombie"){
       this.knockBack();
-      this.damageFlashingEffect();
 
       if (millis() >= this.lastTookDamage + this.iFramesLength){
         this.isInIFrames = false;
@@ -186,7 +187,6 @@ class Player {
       }
     }
     else if (this.lastHitBy === "projectile"){
-      this.damageFlashingEffect();
 
       if (millis() >= this.lastTookDamage + this.iFramesLength){
         this.isInIFrames = false;
@@ -218,19 +218,24 @@ class Player {
 
   // when damaged, flash from base colour to flashing colour for iFrames duration
   damageFlashingEffect(){
-    let flashingInterval = this.iFramesLength * 0.1;
+    if (this.isInIFrames){
+      let flashingInterval = this.iFramesLength * 0.1;
 
-    if (millis() > this.lastTimeFlashed + flashingInterval){
-      if (this.flashedLastInterval){
-        this.currentColour = this.colour;
-      }
-      else if (!this.flashedLastInterval){
-        this.currentColour = this.flashingColour;
-      }
+      if (millis() > this.lastTimeFlashed + flashingInterval){
+        if (this.flashedLastInterval){
+          stroke("black");
+          this.currentColour = this.colour;
+        }
+        else if (!this.flashedLastInterval){
+          noStroke();
+          this.currentColour = this.flashingColour;
+        }
 
-      this.flashedLastInterval = !this.flashedLastInterval;
-      this.lastTimeFlashed = millis();
+        this.flashedLastInterval = !this.flashedLastInterval;
+        this.lastTimeFlashed = millis();
+      }
     }
+    
   }
 
   // shows the healthBar of the player
@@ -299,20 +304,34 @@ class Bullet {
 }
 
 class Bomb {
-  constructor(_x, _y, _angle, _damage){
+  constructor(_x, _y, _angle, _damage, _explosionRadius){
     this.pos = createVector(_x, _y);
     this.angle = _angle;
     this.speed = 8;
     this.radius = 8;
     this.damage = _damage;
-    this.bombRadius = 250;
+    this.explosionRadius = _explosionRadius;
 
     this.colour = color(245, 114, 7);
     this.type = "bomb";
+
+    this.indicatorR = 255;
+    this.indicatorG = 0;
+    this.indicatorB = 0;
+    this.indicatorAlp = 70;
+    this.indicatorColour;
   }
 
   display(){
+    // explosion indicator
     noStroke();
+    this.indicatorColour = color(this.indicatorR, this.indicatorG, this.indicatorB, this.indicatorAlp);
+    fill(this.indicatorColour);
+    circle(this.pos.x, this.pos.y, this.explosionRadius * 2);
+    this.indicatorAlp -= 1;
+
+    // actual bomb
+    stroke("black");
     fill(this.colour);
     circle(this.pos.x, this.pos.y, this.radius * 2);
   }
@@ -335,7 +354,7 @@ class Bomb {
 
   explode(){
     console.log("explode");
-    playerBombExplodeArray.push(new PlayerExplosion(this.damage, 250, this.pos.x, this.pos.y, this.colour));
+    playerBombExplodeArray.push(new PlayerExplosion(this.damage, this.explosionRadius, this.pos.x, this.pos.y, this.colour));
   }
 }
 
@@ -344,20 +363,25 @@ class PlayerExplosion {
     this.pos = createVector(_x, _y);
     this.damage = _damage;
     this.radius = _radius;
-    this.colour = _colour;
-    this.alpha = 100;
+    this.r = _colour.levels[0];
+    this.g = _colour.levels[1];
+    this.b = _colour.levels[2];
+    this.alp = 200;
+    this.colour;
 
     this.damageEnemy();
+    this.damagePlayer();
   }
 
   // need to make see-through effect work better
   display(){
     noStroke();
-    fill(this.colour, this.alpha);
+    this.colour = color(this.r, this.g, this.b, this.alp);
+    fill(this.colour);
     circle(this.pos.x, this.pos.y, this.radius * 2);
-    this.alpha -= 1;
+    this.alp -= 5;
 
-    if (this.alpha <= 0){
+    if (this.alp <= 0){
       let index = playerBombExplodeArray.indexOf(this);
       playerBombExplodeArray.splice(index, 1);
     }
@@ -372,6 +396,13 @@ class PlayerExplosion {
         hitEnemySFX.setVolume(0.8);
         hitEnemySFX.play();
       }
+    }
+  }
+
+  damagePlayer(){
+    if (dist(this.pos.x, this.pos.y, player.pos.x, player.pos.y) < this.radius * 0.95){
+      player.takeDamage(1);
+      
     }
   }
 }
@@ -720,7 +751,7 @@ class UpgradesShop {
     this.bulletDmgLv = 0;
     this.bulletDmgCost = 300;
     this.bulletDmgCostIncrease = 200;
-    this.bulletDmgIncreaseAmount = 1.25; // 0.5
+    this.bulletDmgIncreaseAmount = 1.25;
 
     this.movementSpdLv = 0;
     this.movementSpdCost = 100;
@@ -730,7 +761,17 @@ class UpgradesShop {
     this.bulletFirerateLv = 0;
     this.bulletFirerateCost = 250;
     this.bulletFirerateCostIncrease = 175;
-    this.bulletFirerateIncreaseAmount = 0.8; // 30
+    this.bulletFirerateIncreaseAmount = 0.8;
+
+    this.bombDmgLv = 0;
+    this.bombDmgCost = 400;
+    this.bombDmgCostIncrease = 225;
+    this.bombDmgIncreaseAmount = 1.25;
+
+    this.bombAreaLv = 0;
+    this.bombAreaCost = 250;
+    this.bombAreaCostIncrease = 200;
+    this.bombAreaIncreaseAmount = 1.1;
   }
 
   display(){
@@ -777,38 +818,36 @@ class UpgradesShop {
     textStyle(BOLD);
     textAlign(CENTER);
     fill("white");
-    // let textPos1 = createVector(width / 4, this.shopBGPos.y + height / 18);
 
     let textX1 = width * 0.36;
     let textX2 = width * 0.64;
 
-    let textY1 = height/12;
-    let textY2 = 2 * height/12;
-    let textY3 = 3 * height/12;
+    let textY1 = height/13;
+    let textY2 = 2 * height/13;
+    let textY3 = 3 * height/13;
 
     // max health increase
     text("INCREASE MAX HEALTH (1)", textX1, textY1);
     text("COST: " + this.healthCost + "   LV: " + this.healthLv, textX1, textY1 + shopTextSize);
 
     // bullet damage increase
-    text("INCREASE BULLET DAMAGE (2)", textX1, textY2);
+    text("INCREASE BULLET DAMAGE (3)", textX1, textY2);
     text("COST: " + this.bulletDmgCost + "   LV: " + this.bulletDmgLv, textX1, textY2 + shopTextSize);
 
-    // text("INCREASE MAX HEALTH (Y)", textX1, textY3);
-    // text("COST: " + this.healthCost + "   LV: " + this.healthLv, textX1, textY3 + 12);
+    text("INCREASE BOMB DAMAGE (5)", textX1, textY3);
+    text("COST: " + this.bombDmgCost + "   LV: " + this.bombDmgLv, textX1, textY3 + shopTextSize);
 
 
-    text("INCREASE MOVEMENT SPEED(3)", textX2, textY1);
+    text("INCREASE MOVEMENT SPEED (2)", textX2, textY1);
     text("COST: " + this.movementSpdCost + "   LV: " + this.movementSpdLv, textX2, textY1 + shopTextSize);
 
     text("INCREASE BULLET FIRE RATE (4)", textX2, textY2);
     text("COST: " + this.bulletFirerateCost + "   LV: " + this.bulletFirerateLv, textX2, textY2 + shopTextSize);
 
-    // text("INCREASE MAX HEALTH (Y)", textX2, textY3);
-    // text("COST: " + this.healthCost + "   LV: " + this.healthLv, textX2, textY3 + 12);
+    text("INCREASE EXPLOSION RADIUS (6)", textX2, textY3);
+    text("COST: " + this.bombAreaCost + "   LV: " + this.bombAreaLv, textX2, textY3 + shopTextSize);
 
     // cash text
-
     textAlign(LEFT);
     textSize(24);
     text("CASH: " + playerCash, width / 4.6, height / 3.2);
@@ -827,19 +866,6 @@ class UpgradesShop {
     }
   }
 
-  bulletDamageUpgrade(){
-    if (playerCash >= this.bulletDmgCost){
-      // player.bulletDamage += this.bulletDmgIncreaseAmount;
-      player.bulletDamage *= this.bulletDmgIncreaseAmount;
-
-      playerCash -= this.bulletDmgCost;
-      this.bulletDmgCost += this.bulletDmgCostIncrease * (this.bulletDmgLv + 1);
-      this.bulletDmgLv += 1;
-
-      this.playUpgradeSFX();
-    }
-  }
-
   movementSpdUpgrade(){
     if (playerCash >= this.movementSpdCost){
       player.speed += this.movementSpdIncreaseAmount;
@@ -852,14 +878,50 @@ class UpgradesShop {
     }
   }
 
+  bulletDamageUpgrade(){
+    if (playerCash >= this.bulletDmgCost){
+      player.bulletDamage *= this.bulletDmgIncreaseAmount;
+
+      playerCash -= this.bulletDmgCost;
+      this.bulletDmgCost += this.bulletDmgCostIncrease * (this.bulletDmgLv + 1);
+      this.bulletDmgLv += 1;
+
+      this.playUpgradeSFX();
+    }
+  }
+
+
   bulletFirerateUpgrade(){
     if (playerCash >= this.bulletFirerateCost && player.bulletFirerate > 50){
-      // player.bulletFirerate -= this.bulletFirerateIncreaseAmount;
       player.bulletFirerate *= this.bulletFirerateIncreaseAmount;
 
       playerCash -= this.bulletFirerateCost;
       this.bulletFirerateCost += this.bulletFirerateCostIncrease * (this.bulletFirerateLv + 1);
       this.bulletFirerateLv += 1;
+
+      this.playUpgradeSFX();
+    }
+  }
+
+  bombDamageUpgrade(){
+    if (playerCash >= this.bombDmgCost){
+      player.bombDamage *= this.bombDmgIncreaseAmount;
+
+      playerCash -= this.bombDmgCost;
+      this.bombDmgCost += this.bombDmgCostIncrease * (this.bombDmgLv + 1);
+      this.bombDmgLv += 1;
+
+      this.playUpgradeSFX();
+    }
+  }
+
+  bombAreaUpgrade(){
+    if (playerCash >= this.bombAreaCost){
+      player.bombExplosionRadius *= this.bombAreaIncreaseAmount;
+
+      playerCash -= this.bombAreaCost;
+      this.bombAreaCost += this.bombAreaCostIncrease * (this.bombAreaLv + 1);
+      this.bombAreaLv += 1;
 
       this.playUpgradeSFX();
     }
@@ -960,6 +1022,9 @@ function managePlayerFunctions(){
 }
 
 function manageBulletFunctions(){
+  for (let i = playerBombExplodeArray.length - 1; i >= 0; i--){
+    playerBombExplodeArray[i].display();
+  }
   for (let i = playerBulletsArray.length - 1; i >= 0; i--){
     playerBulletsArray[i].display();
     playerBulletsArray[i].movement();
@@ -967,9 +1032,6 @@ function manageBulletFunctions(){
     if (playerBulletsArray[i].isOffScreen()){
       playerBulletsArray.splice(i, 1);
     }
-  }
-  for (let i = playerBombExplodeArray.length - 1; i >= 0; i--){
-    playerBombExplodeArray[i].display();
   }
 }
 
@@ -1262,14 +1324,20 @@ function keyReleased(){
     if (key === "1"){
       upgradesShop.maxHealthUpgrade();
     }
-    else if (key === "2"){
-      upgradesShop.bulletDamageUpgrade();
-    }
-    else if(key === "3"){
+    else if(key === "2"){
       upgradesShop.movementSpdUpgrade();
+    }
+    else if (key === "3"){
+      upgradesShop.bulletDamageUpgrade();
     }
     else if (key === "4"){
       upgradesShop.bulletFirerateUpgrade();
+    }
+    else if (key === "5"){
+      upgradesShop.bombDamageUpgrade();
+    }
+    else if (key === "6"){
+      upgradesShop.bombAreaUpgrade();
     }
   }
 }
