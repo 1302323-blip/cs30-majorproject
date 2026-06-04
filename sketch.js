@@ -59,7 +59,7 @@ class Player {
     // bombs
     this.bombFirerate = 850;
     this.bombDamage = 1;
-    this.bombExplosionRadius = 159;
+    this.bombExplosionRadius = 100;
 
     this.currentWeapon = "bullet"; // bullet, bomb
     this.lastTimeFiredBullet = 0;
@@ -76,7 +76,6 @@ class Player {
     // effects for when damaged
     this.flashingColour = color(0, 0, 0, 0);
     this.lastTimeFlashed = 0;
-    this.flashedLastInterval = false;
 
     this.healthUIPos = createVector(width/2, height/2);
     this.healthUISize = 50;
@@ -114,12 +113,12 @@ class Player {
   }
 
   display(){
+    this.damageFlashingEffect();
     if (!this.isInIFrames){
       stroke("black");
       this.currentColour = this.colour;
       this.totalKnockBackIntervals = 0;
     }
-    this.damageFlashingEffect();
     
     push();
     translate(this.pos.x, this.pos.y);
@@ -129,6 +128,8 @@ class Player {
     rectMode(CENTER);
     square(0, 0, this.size);
     pop();
+
+    console.log(millis() >= this.lastTookDamage + this.iFramesLength);
 
   }
 
@@ -169,10 +170,6 @@ class Player {
     }
     else if (this.lastHitBy === "zombie"){
       this.knockBack();
-
-      if (millis() >= this.lastTookDamage + this.iFramesLength){
-        this.isInIFrames = false;
-      }
     }
   }
 
@@ -184,12 +181,6 @@ class Player {
           this.takeDamage(zombieProjectileArray[i].damage);
           zombieProjectileArray.splice(i, 1);
         }
-      }
-    }
-    else if (this.lastHitBy === "projectile"){
-
-      if (millis() >= this.lastTookDamage + this.iFramesLength){
-        this.isInIFrames = false;
       }
     }
   }
@@ -222,20 +213,22 @@ class Player {
       let flashingInterval = this.iFramesLength * 0.1;
 
       if (millis() > this.lastTimeFlashed + flashingInterval){
-        if (this.flashedLastInterval){
+        if (this.currentColour === this.flashingColour){
           stroke("black");
           this.currentColour = this.colour;
         }
-        else if (!this.flashedLastInterval){
+        else if (this.currentColour === this.colour){
           noStroke();
           this.currentColour = this.flashingColour;
         }
 
-        this.flashedLastInterval = !this.flashedLastInterval;
         this.lastTimeFlashed = millis();
+        console.log(this.lastTimeFlashed);
       }
-    }
-    
+      if (millis() >= this.lastTookDamage + this.iFramesLength){
+        this.isInIFrames = false;
+      }
+    }  
   }
 
   // shows the healthBar of the player
@@ -272,7 +265,7 @@ class Bullet {
   constructor(_x, _y, _angle, _damage){
     this.pos = createVector(_x, _y);
     this.angle = _angle;
-    this.speed = 10; // 10
+    this.speed = 12;
     this.radius = 3;
     this.damage = _damage;
 
@@ -308,7 +301,7 @@ class Bomb {
     this.pos = createVector(_x, _y);
     this.angle = _angle;
     this.speed = 8;
-    this.radius = 8;
+    this.radius = 11;
     this.damage = _damage;
     this.explosionRadius = _explosionRadius;
 
@@ -328,7 +321,7 @@ class Bomb {
     this.indicatorColour = color(this.indicatorR, this.indicatorG, this.indicatorB, this.indicatorAlp);
     fill(this.indicatorColour);
     circle(this.pos.x, this.pos.y, this.explosionRadius * 2);
-    this.indicatorAlp -= 1;
+    this.indicatorAlp -= 1.5;
 
     // actual bomb
     stroke("black");
@@ -401,8 +394,8 @@ class PlayerExplosion {
 
   damagePlayer(){
     if (dist(this.pos.x, this.pos.y, player.pos.x, player.pos.y) < this.radius * 0.95){
+      player.lastHitBy = "projectile";
       player.takeDamage(1);
-      
     }
   }
 }
@@ -745,7 +738,7 @@ class UpgradesShop {
 
     this.healthLv = 0;
     this.healthCost = 150;
-    this.healthCostIncrease = 100;
+    this.healthCostIncrease = 250;
     this.healthIncreaseAmount = 1;
     
     this.bulletDmgLv = 0;
@@ -755,23 +748,23 @@ class UpgradesShop {
 
     this.movementSpdLv = 0;
     this.movementSpdCost = 100;
-    this.movementSpdCostIncrease = 225;
+    this.movementSpdCostIncrease = 250;
     this.movementSpdIncreaseAmount = 0.5;
 
     this.bulletFirerateLv = 0;
     this.bulletFirerateCost = 250;
-    this.bulletFirerateCostIncrease = 175;
+    this.bulletFirerateCostIncrease = 200;
     this.bulletFirerateIncreaseAmount = 0.8;
 
     this.bombDmgLv = 0;
-    this.bombDmgCost = 400;
-    this.bombDmgCostIncrease = 225;
+    this.bombDmgCost = 350;
+    this.bombDmgCostIncrease = 200;
     this.bombDmgIncreaseAmount = 1.25;
 
     this.bombAreaLv = 0;
     this.bombAreaCost = 250;
-    this.bombAreaCostIncrease = 200;
-    this.bombAreaIncreaseAmount = 1.1;
+    this.bombAreaCostIncrease = 150;
+    this.bombAreaIncreaseAmount = 1.045;
   }
 
   display(){
@@ -867,7 +860,7 @@ class UpgradesShop {
   }
 
   movementSpdUpgrade(){
-    if (playerCash >= this.movementSpdCost){
+    if (playerCash >= this.movementSpdCost && player.speed < 9){
       player.speed += this.movementSpdIncreaseAmount;
 
       playerCash -= this.movementSpdCost;
@@ -916,7 +909,7 @@ class UpgradesShop {
   }
 
   bombAreaUpgrade(){
-    if (playerCash >= this.bombAreaCost){
+    if (playerCash >= this.bombAreaCost && player.bombExplosionRadius < 150){
       player.bombExplosionRadius *= this.bombAreaIncreaseAmount;
 
       playerCash -= this.bombAreaCost;
@@ -986,7 +979,7 @@ function reset(){
 
 
 function draw(){
-  background(0);
+  background(150);
 
   // class management
   player.displayHealthUI();
@@ -1384,6 +1377,11 @@ function tutorialText(){
     if (waveNum === 5){
       text("Some enemies can shoot bullets of their own", textPos.x, textPos.y);
       text("Make sure to avoid their shots", textPos.x, textPos.y + tutorialTextSize * 2);
+    }
+    if (waveNum === 6){
+      text("Pressing E switches your weapons around, between bullets and bombs", textPos.x, textPos.y);
+      text("Careful when using the bombs", textPos.x, textPos.y + tutorialTextSize * 2);
+      text("They can damage yourself if you're not careful", textPos.x, textPos.y + tutorialTextSize * 4);
     }
     if (waveNum === 8){
       text("If you haven't already, get some damage or fire rate upgrades", textPos.x, textPos.y);
