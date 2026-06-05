@@ -128,9 +128,6 @@ class Player {
     rectMode(CENTER);
     square(0, 0, this.size);
     pop();
-
-    console.log(millis() >= this.lastTookDamage + this.iFramesLength);
-
   }
 
   shootBullets(){
@@ -140,7 +137,9 @@ class Player {
         playerBulletsArray.push(new Bullet(this.pos.x, this.pos.y, this.angle, this.bulletDamage));
 
         shootBulletSFX.setVolume(0.3);
-        shootBulletSFX.play();
+        if (!shootBulletSFX.isPlaying()){
+          shootBulletSFX.play();
+        }
       }
     }
   }
@@ -152,7 +151,9 @@ class Player {
         playerBulletsArray.push(new Bomb(this.pos.x, this.pos.y, this.angle, this.bombDamage, this.bombExplosionRadius));
 
         shootBulletSFX.setVolume(0.5);
-        shootBulletSFX.play();
+        if (!shootBulletSFX.isPlaying()){
+          shootBulletSFX.play();
+        }
       }
     }
   }
@@ -192,7 +193,9 @@ class Player {
     this.lastTookDamage = millis();
 
     tookDmgSFX.setVolume(0.7);
-    tookDmgSFX.play();
+    if (!tookDmgSFX.isPlaying()){
+      tookDmgSFX.play();  
+    }
   }
 
   // knocks player back when they get hit by an enemy
@@ -210,20 +213,19 @@ class Player {
   // when damaged, flash from base colour to flashing colour for iFrames duration
   damageFlashingEffect(){
     if (this.isInIFrames){
+      noStroke();
       let flashingInterval = this.iFramesLength * 0.1;
 
       if (millis() > this.lastTimeFlashed + flashingInterval){
         if (this.currentColour === this.flashingColour){
-          stroke("black");
+          
           this.currentColour = this.colour;
         }
         else if (this.currentColour === this.colour){
-          noStroke();
           this.currentColour = this.flashingColour;
         }
 
         this.lastTimeFlashed = millis();
-        console.log(this.lastTimeFlashed);
       }
       if (millis() >= this.lastTookDamage + this.iFramesLength){
         this.isInIFrames = false;
@@ -346,7 +348,6 @@ class Bomb {
   }
 
   explode(){
-    console.log("explode");
     playerBombExplodeArray.push(new PlayerExplosion(this.damage, this.explosionRadius, this.pos.x, this.pos.y, this.colour));
   }
 }
@@ -366,7 +367,6 @@ class PlayerExplosion {
     this.damagePlayer();
   }
 
-  // need to make see-through effect work better
   display(){
     noStroke();
     this.colour = color(this.r, this.g, this.b, this.alp);
@@ -387,15 +387,19 @@ class PlayerExplosion {
         zombiesArray[i].lastTimeDamaged = millis();
 
         hitEnemySFX.setVolume(0.8);
-        hitEnemySFX.play();
+        if (!hitEnemySFX.isPlaying()){
+          hitEnemySFX.play();
+        }
       }
     }
   }
 
   damagePlayer(){
-    if (dist(this.pos.x, this.pos.y, player.pos.x, player.pos.y) < this.radius * 0.95){
-      player.lastHitBy = "projectile";
-      player.takeDamage(1);
+    if (!player.isInIFrames){
+      if (dist(this.pos.x, this.pos.y, player.pos.x, player.pos.y) < this.radius * 0.95){
+        player.lastHitBy = "projectile";
+        player.takeDamage(1);
+      }
     }
   }
 }
@@ -526,7 +530,7 @@ class Fast extends Enemy {
 
 class Bolt extends Enemy {
   constructor(){
-    super("bolt", 12, 9, 3, 3, 35, color(255, 255, 92), "black");
+    super(bolt, 12, 9, 2, 3, 35, color(255, 255, 92), "black");
   }
 }
 
@@ -538,23 +542,8 @@ class Strong extends Enemy {
 
 class Brute extends Enemy {
   constructor(){
-    super("brute", 42, 1.4, 25, 8, 150, color(173, 0, 0), "black");
-    // this.pulseRate = 4000;
-    // this.lastTimePulsed = 0;
-    // this.pulseRadius = this.radius * 3;
-    // this.pulseDamage = 2;
+    super(brute, 42, 1.4, 25, 8, 150, color(173, 0, 0), "black");
   }
-
-  // could maybe not be needed
-
-  // pulse(){
-  //   if (this.pos.x > 0 && this.pos.x < width && this.pos.y > 0 && this.pos.y < height){
-  //     if (this.lastTimePulsed + this.pulseRate < millis()){
-  //       this.lastTimePulsed = millis();
-        
-  //     }
-  //   }
-  // }
 }
 
 class Shooter extends Enemy {
@@ -582,7 +571,7 @@ class Shooter extends Enemy {
 
 class Sprayer extends Enemy{
   constructor(){
-    super("sprayer", 20, 0.8, 8, 1, 50, color(66, 19, 186), "black");
+    super(sprayer, 20, 0.8, 8, 1, 50, color(66, 19, 186), "black");
     this.firerate = 250; // milliseconds
     this.lastTimeFiredBullet = 0;
     this.bulletRadius = 3.5;
@@ -757,7 +746,7 @@ class UpgradesShop {
     this.bulletFirerateIncreaseAmount = 0.8;
 
     this.bombDmgLv = 0;
-    this.bombDmgCost = 350;
+    this.bombDmgCost = 300;
     this.bombDmgCostIncrease = 200;
     this.bombDmgIncreaseAmount = 1.25;
 
@@ -922,7 +911,9 @@ class UpgradesShop {
 
   playUpgradeSFX(){
     buyUpgradeSFX.setVolume(0.2);
-    buyUpgradeSFX.play();
+    if (!buyUpgradeSFX.isPlaying()){
+      buyUpgradeSFX.play();
+    }
   }
 }
 
@@ -979,7 +970,7 @@ function reset(){
 
 
 function draw(){
-  background(150);
+  background(0);
 
   // class management
   player.displayHealthUI();
@@ -1043,7 +1034,7 @@ function manageZombieFunctions(){
 }
 
 function specialZombieFunctions(zombie){
-  if (zombie.type === shooter || zombie.type === "sprayer"){
+  if (zombie.type === shooter || zombie.type === sprayer){
     zombie.shoot();
   }
   if (zombie.type === healer){
@@ -1076,13 +1067,13 @@ let healer = "healer";
 
 function zombieWaveManager(){
   // intervals are written in seconds
-  if (waveNum === 1){
+  if (waveNum === 1){ // normal
     spawnZombies(normal, 4, 1.3, 1);
     spawnZombies(normal, 4, 0.3, 2);
 
     areAllZombiesSpawned(2);
   }
-  if (waveNum === 2){
+  if (waveNum === 2){ // fast
     spawnZombies(fast, 4, 0.6, 1);
     spawnZombies(normal, 6, 0.7, 2);
     spawnZombies(fast, 3, 0.4, 3);
@@ -1096,7 +1087,7 @@ function zombieWaveManager(){
 
     areAllZombiesSpawned(3);
   }
-  if (waveNum === 4){
+  if (waveNum === 4){ // strong
     spawnZombies(strong, 1, 1, 1);
     spawnZombies(fast, 4, 0.6, 2);
     spawnZombies(normal, 6, 0.5, 3);
@@ -1115,7 +1106,7 @@ function zombieWaveManager(){
 
     areAllZombiesSpawned(6);
   }
-  if (waveNum === 6){
+  if (waveNum === 6){ // shooter
     spawnZombies(normal, 6, 0.5, 1);
     spawnZombies(shooter, 3, 0.8, 2);
     spawnZombies(normal, 8, 0.7, 3);
@@ -1134,14 +1125,14 @@ function zombieWaveManager(){
 
     areAllZombiesSpawned(6);
   }
-  if (waveNum === 8){
+  if (waveNum === 8){ // guardian
     spawnZombies(normal, 20, 0.1, 1);
     spawnZombies(guardian, 5, 0.9, 2);
     spawnZombies(shooter, 6, 0.4, 3);
 
     areAllZombiesSpawned(3);
   }
-  if (waveNum === 9){
+  if (waveNum === 9){ // healer
     spawnZombies(strong, 2, 0.3, 1);
     spawnZombies(normal, 8, 0.2, 2);
     spawnZombies(healer, 3, 1, 3);
@@ -1172,6 +1163,75 @@ function zombieWaveManager(){
 
     areAllZombiesSpawned(12);
   }
+  if (waveNum === 11){ // bolt
+    spawnZombies(fast, 12, 0.3, 1);
+    spawnZombies(bolt, 5, 1, 2);
+    spawnZombies(guardian, 7, 0.5, 3);
+    spawnZombies(bolt, 2, 0.3, 4);
+
+    areAllZombiesSpawned(4);
+  }
+  if (waveNum === 12){
+    spawnZombies(bolt, 10, 1, 1);
+    spawnZombies(guardian, 5, 0.6, 2);
+    spawnZombies(bolt, 5, 0.8, 3);
+    spawnZombies(strong, 7, 0.1, 4);
+    spawnZombies(healer, 5, 0.8, 5);
+    spawnZombies(bolt, 8, 1.5, 6);
+
+    areAllZombiesSpawned(6);
+  }
+  if (waveNum === 13){ // sprayer
+    spawnZombies(shooter, 15, 1.2, 1);
+    spawnZombies(guardian, 5, 0.3, 2);
+    spawnZombies(sprayer, 1, 1, 3);
+
+    wTSpawnUnderEnemyCount(5, 4);
+
+    spawnZombies(bolt, 5, 0.1, 5);
+    spawnZombies(shooter, 8, 0.3, 6);
+    spawnZombies(sprayer, 1, 3, 7);
+    spawnZombies(healer, 4, 0.3, 8);
+
+    areAllZombiesSpawned(8);
+  }
+  if (waveNum === 14){
+    spawnZombies(sprayer, 3, 0.2, 1);
+    spawnZombies(guardian, 4, 0.5, 2);
+    spawnZombies(shooter, 8, 0.8, 3);
+    spawnZombies(healer, 2, 0.3, 4);
+
+    spawnZombies(guardian, 10, 0.9, 5);
+    spawnZombies(shooter, 5, 0.2, 6);
+    spawnZombies(bolt, 8, 2, 7);
+
+    areAllZombiesSpawned(7);
+  }
+  if (waveNum === 15){ // brute
+    spawnZombies(brute, 1, 0.1, 1);
+    waitToSpawn(3, 2);
+    spawnZombies(normal, 30, 0.1, 3);
+    spawnZombies(guardian, 10, 0.2, 4);
+
+    wTSpawnUnderEnemyCount(5, 5);
+
+    spawnZombies(brute, 1, 0.1, 6);
+    spawnZombies(fast, 18, 0.3, 7);
+    spawnZombies(shooter, 5, 0.8, 8);
+    spawnZombies(brute, 2, 0.5, 9);
+    spawnZombies(healer, 5, 1, 10);
+    spawnZombies(bolt, 8, 0.8, 11);
+
+    wTSpawnUnderEnemyCount(5, 12);
+
+    spawnZombies(brute, 5, 0.3, 13);
+    spawnZombies(shooter, 8, 0.4, 14);
+    spawnZombies(sprayer, 1, 0.1, 15);
+    spawnZombies(guardian, 10, 1, 16);
+    spawnZombies(sprayer, 2, 5, 17);
+
+    areAllZombiesSpawned(17);
+  }
 }
 
 // organization function - used to spawn specific type of enemy called in spawnZomibes()
@@ -1185,19 +1245,19 @@ function zombieTypeToSpawn(_enemyType){
   if (_enemyType === fast){
     zombiesArray.push(new Fast());
   }
-  if (_enemyType === "bolt"){
+  if (_enemyType === bolt){
     zombiesArray.push(new Bolt());
   }
   if (_enemyType === strong){
     zombiesArray.push(new Strong());
   }
-  if (_enemyType === "brute"){
+  if (_enemyType === brute){
     zombiesArray.push(new Brute());
   }
   if (_enemyType === shooter){
     zombiesArray.push(new Shooter());
   }
-  if (_enemyType === "sprayer"){
+  if (_enemyType === sprayer){
     zombiesArray.push(new Sprayer());
   }
   if (_enemyType === healer){
@@ -1300,7 +1360,9 @@ function keyReleased(){
     else if (player.currentWeapon === "bomb"){
       player.currentWeapon = "bullet";
     }
-    console.log(player.currentWeapon);
+
+    openShopSFX.setVolume(1);
+    openShopSFX.play();
   }
 
   // pressing t opens the shop
@@ -1374,6 +1436,7 @@ function tutorialText(){
       text("Purchasing the max health upgrade also fully heals you", textPos.x, textPos.y);
       text("Use this to your advantage", textPos.x, textPos.y + tutorialTextSize * 2);
     }
+
     if (waveNum === 5){
       text("Some enemies can shoot bullets of their own", textPos.x, textPos.y);
       text("Make sure to avoid their shots", textPos.x, textPos.y + tutorialTextSize * 2);
@@ -1386,6 +1449,26 @@ function tutorialText(){
     if (waveNum === 8){
       text("If you haven't already, get some damage or fire rate upgrades", textPos.x, textPos.y);
       text("You'll need it to outdamage their healing", textPos.x, textPos.y + tutorialTextSize * 2);
+    }
+
+    if (waveNum === 10){
+      text("Their speed is superior", textPos.x, textPos.y);
+      text("Keep your distance and shut them down as soon as possible", textPos.x, textPos.y + tutorialTextSize * 2);
+    }
+    if (waveNum === 12){
+      text("Stay on the move", textPos.x, textPos.y);
+      text("They'll be constantly shooting at you", textPos.x, textPos.y + tutorialTextSize * 2);
+    }
+    if (waveNum === 14){
+      text("You're in the final stretch now", textPos.x, textPos.y);
+      text("You got this", textPos.x, textPos.y + tutorialTextSize * 2);
+      text("Their size is intimidating, but it only means a bigger target to shoot", textPos.x, textPos.y + tutorialTextSize * 4);
+    }
+
+    if (waveNum === 15){
+      text("That was the final wave so far", textPos.x, textPos.y);
+      text("Good Job!", textPos.x, textPos.y + tutorialTextSize * 2);
+      text("Refresh if you wanna try again", textPos.x, textPos.y + tutorialTextSize * 4);
     }
   }
 }
