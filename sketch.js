@@ -530,7 +530,7 @@ class Fast extends Enemy {
 
 class Bolt extends Enemy {
   constructor(){
-    super(bolt, 12, 9, 2, 3, 35, color(255, 255, 92), "black");
+    super(bolt, 12, 7.5, 2, 3, 35, color(255, 255, 92), "black");
   }
 }
 
@@ -1165,19 +1165,19 @@ function zombieWaveManager(){
   }
   if (waveNum === 11){ // bolt
     spawnZombies(fast, 12, 0.3, 1);
-    spawnZombies(bolt, 5, 1, 2);
+    spawnZombies(bolt, 4, 1, 2);
     spawnZombies(guardian, 7, 0.5, 3);
     spawnZombies(bolt, 2, 0.3, 4);
 
     areAllZombiesSpawned(4);
   }
   if (waveNum === 12){
-    spawnZombies(bolt, 10, 1, 1);
+    spawnZombies(bolt, 5, 1, 1);
     spawnZombies(guardian, 5, 0.6, 2);
-    spawnZombies(bolt, 5, 0.8, 3);
+    spawnZombies(bolt, 3, 0.8, 3);
     spawnZombies(strong, 7, 0.1, 4);
     spawnZombies(healer, 5, 0.8, 5);
-    spawnZombies(bolt, 8, 1.5, 6);
+    spawnZombies(bolt, 5, 1.5, 6);
 
     areAllZombiesSpawned(6);
   }
@@ -1188,7 +1188,7 @@ function zombieWaveManager(){
 
     wTSpawnUnderEnemyCount(5, 4);
 
-    spawnZombies(bolt, 5, 0.1, 5);
+    spawnZombies(bolt, 3, 0.1, 5);
     spawnZombies(shooter, 8, 0.3, 6);
     spawnZombies(sprayer, 1, 3, 7);
     spawnZombies(healer, 4, 0.3, 8);
@@ -1203,7 +1203,7 @@ function zombieWaveManager(){
 
     spawnZombies(guardian, 10, 0.9, 5);
     spawnZombies(shooter, 5, 0.2, 6);
-    spawnZombies(bolt, 8, 2, 7);
+    spawnZombies(bolt, 5, 2, 7);
 
     areAllZombiesSpawned(7);
   }
@@ -1220,7 +1220,7 @@ function zombieWaveManager(){
     spawnZombies(shooter, 5, 0.8, 8);
     spawnZombies(brute, 2, 0.5, 9);
     spawnZombies(healer, 5, 1, 10);
-    spawnZombies(bolt, 8, 0.8, 11);
+    spawnZombies(bolt, 4, 0.8, 11);
 
     wTSpawnUnderEnemyCount(5, 12);
 
@@ -1427,6 +1427,10 @@ function tutorialText(){
       text("Shoot the approaching blobs", textPos.x, textPos.y + tutorialTextSize * 4);
 
       text("Press the space bar to begin", textPos.x, textPos.y - tutorialTextSize * 12);
+    }
+    if (waveNum === 1){
+      text("Press wave to start the next wave", textPos.x, textPos.y)
+      text("You can tell when you can start the next wave when enemies stop approaching you", textPos.x, textPos.y + tutorialTextSize * 2)
     }
     if (waveNum === 2){
       text("Press ' T ' to open up the shop", textPos.x, textPos.y);
