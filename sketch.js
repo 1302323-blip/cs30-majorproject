@@ -1,18 +1,16 @@
 // Array and Object Notation
 // Steven Qiu
 // March 5, 2026
-//
-// Extra for Experts:
-// - 
-
 
 let player;
 
+// arrays
 let playerBulletsArray = [];
 let playerBombExplodeArray = [];
 let zombiesArray = [];
 let zombieProjectileArray = [];
 
+// zombie wave variables (for spawning)
 let waveNum = 0;
 let miniWave = 0;
 let enemySpawnedCounter = 0;
@@ -21,6 +19,7 @@ let zombiesFinishedSpawning = true;
 let canBeginNextWave = true;
 let lastSpawnTime = 0;
 
+// shop related variables
 let upgradesShop;
 let playerCash;
 
@@ -31,14 +30,13 @@ let shootBulletSFX;
 let tookDmgSFX;
 
 let enemyBulletShootSFX;
-let enemyHealSFX; //
+let enemyHealSFX;
 let hitEnemySFX;
 let enemyDieSFX;
 
 let openShopSFX;
 let buyUpgradeSFX;
 
-// for size stuff
 
 class Player {
   constructor(){
@@ -64,6 +62,7 @@ class Player {
     this.currentWeapon = "bullet"; // bullet, bomb
     this.lastTimeFiredBullet = 0;
 
+    // for when taking damage
     this.iFramesLength = 1000; // milli-seconds
     this.isInIFrames = false;
     this.lastTookDamage = 0;
@@ -77,34 +76,36 @@ class Player {
     this.flashingColour = color(0, 0, 0, 0);
     this.lastTimeFlashed = 0;
 
+    // health bar/circle
     this.healthUIPos = createVector(width/2, height/2);
     this.healthUISize = 50;
   }
 
   movement(){
-    if (keyIsDown(87)){ // up || keyIsDown(38)
+    // vertical
+    if (keyIsDown(87) || keyIsDown(38)){ // up
       this.dir.y = -1;
     }
-    else if (keyIsDown(83)){ // down || keyIsDown(40)
+    else if (keyIsDown(83) || keyIsDown(40)){ // down
       this.dir.y = 1;
     }
     else {
       this.dir.y = 0;
     }
-
-    if (keyIsDown(65)){ // left || keyIsDown(37)
+    // horizontal
+    if (keyIsDown(65) || keyIsDown(37)){ // left
       this.dir.x = -1;
     }
-    else if (keyIsDown(68)){ // right || keyIsDown(39)
+    else if (keyIsDown(68) || keyIsDown(39)){ // right
       this.dir.x = 1;
     }
     else {
       this.dir.x = 0;
     }
 
+    // normalizing movement (no weird speed ups when moving diagonally)
     this.dir.normalize();
     this.dir.mult(this.speed);
-
     this.pos.add(this.dir);
 
     // contains on screen
@@ -113,6 +114,7 @@ class Player {
   }
 
   display(){
+    // determine fill colour
     this.damageFlashingEffect();
     if (!this.isInIFrames){
       stroke("black");
@@ -120,6 +122,7 @@ class Player {
       this.totalKnockBackIntervals = 0;
     }
     
+    // display (angling)
     push();
     translate(this.pos.x, this.pos.y);
     this.angle = atan2(mouseY - this.pos.y, mouseX - this.pos.x);
@@ -136,6 +139,7 @@ class Player {
         this.lastTimeFiredBullet = millis() + this.bulletFirerate;
         playerBulletsArray.push(new Bullet(this.pos.x, this.pos.y, this.angle, this.bulletDamage));
 
+        // play SFX
         shootBulletSFX.setVolume(0.3);
         if (!shootBulletSFX.isPlaying()){
           shootBulletSFX.play();
@@ -150,6 +154,7 @@ class Player {
         this.lastTimeFiredBullet = millis() + this.bombFirerate;
         playerBulletsArray.push(new Bomb(this.pos.x, this.pos.y, this.angle, this.bombDamage, this.bombExplosionRadius));
 
+        // play SFX
         shootBulletSFX.setVolume(0.5);
         if (!shootBulletSFX.isPlaying()){
           shootBulletSFX.play();
@@ -158,7 +163,8 @@ class Player {
     }
   }
 
-  collideWithZombie(){
+  
+  collideWithZombie(){ // when damaged by zombie
     if (!this.isInIFrames){
       for (let i = zombiesArray.length - 1; i >= 0; i--){
         if (dist(zombiesArray[i].pos.x, zombiesArray[i].pos.y, this.pos.x, this.pos.y) < (zombiesArray[i].radius + this.size / 2) * 0.85){
@@ -169,12 +175,13 @@ class Player {
         }
       }
     }
+    // applies knockback if they were hit by a zombie
     else if (this.lastHitBy === "zombie"){
       this.knockBack();
     }
   }
 
-  collideWithZombieBullet(){
+  collideWithZombieBullet(){ // when damaged by bullet
     if (!this.isInIFrames){
       for (let i = zombieProjectileArray.length - 1; i >= 0; i--){
         if (dist(zombieProjectileArray[i].pos.x, zombieProjectileArray[i].pos.y, this.pos.x, this.pos.y) < this.size * 2/3){
@@ -192,6 +199,7 @@ class Player {
     this.isInIFrames = true;
     this.lastTookDamage = millis();
 
+    // play SFX
     tookDmgSFX.setVolume(0.7);
     if (!tookDmgSFX.isPlaying()){
       tookDmgSFX.play();  
@@ -216,6 +224,7 @@ class Player {
       noStroke();
       let flashingInterval = this.iFramesLength * 0.1;
 
+      // flashing between colours
       if (millis() > this.lastTimeFlashed + flashingInterval){
         if (this.currentColour === this.flashingColour){
           
@@ -227,6 +236,8 @@ class Player {
 
         this.lastTimeFlashed = millis();
       }
+
+      // sets isInIFrames to false when duration is up
       if (millis() >= this.lastTookDamage + this.iFramesLength){
         this.isInIFrames = false;
       }
@@ -245,6 +256,7 @@ class Player {
     fill("green");
     arc(this.healthUIPos.x, this.healthUIPos.y, this.healthUISize, this.healthUISize, 0, 2 * PI * (this.health / this.maxHealth));
 
+    // text
     fill("black");
     stroke("white");
     textAlign(CENTER);
@@ -348,6 +360,7 @@ class Bomb {
   }
 
   explode(){
+    // creates explosion class to damage enemies with
     playerBombExplodeArray.push(new PlayerExplosion(this.damage, this.explosionRadius, this.pos.x, this.pos.y, this.colour));
   }
 }
@@ -363,29 +376,32 @@ class PlayerExplosion {
     this.alp = 200;
     this.colour;
 
+    // triggers damaging effects when created (only done once when created)
     this.damageEnemy();
     this.damagePlayer();
   }
 
-  display(){
+  display(){ // effects
     noStroke();
     this.colour = color(this.r, this.g, this.b, this.alp);
     fill(this.colour);
     circle(this.pos.x, this.pos.y, this.radius * 2);
     this.alp -= 5;
 
+    // become transparent over time
     if (this.alp <= 0){
       let index = playerBombExplodeArray.indexOf(this);
       playerBombExplodeArray.splice(index, 1);
     }
   }
 
-  damageEnemy(){
+  damageEnemy(){ // damages enemies when within explosion
     for (let i = zombiesArray.length - 1; i >=0; i--){
       if (dist(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y) <= this.radius * 0.95){
         zombiesArray[i].health -= this.damage;
         zombiesArray[i].lastTimeDamaged = millis();
 
+        // play SFX
         hitEnemySFX.setVolume(0.8);
         if (!hitEnemySFX.isPlaying()){
           hitEnemySFX.play();
@@ -394,7 +410,7 @@ class PlayerExplosion {
     }
   }
 
-  damagePlayer(){
+  damagePlayer(){ // damages player if too close
     if (!player.isInIFrames){
       if (dist(this.pos.x, this.pos.y, player.pos.x, player.pos.y) < this.radius * 0.95){
         player.lastHitBy = "projectile";
@@ -405,9 +421,8 @@ class PlayerExplosion {
 }
 
 
-// strokeColour prolly isnt needed
 class Enemy {
-  constructor(_enemyType, _radius, _spd, _health, _damage, _bounty, _fillColour, _strokeColour){
+  constructor(_enemyType, _radius, _spd, _health, _damage, _bounty, _fillColour){
     this.pos = createVector();
     this.angle;
     this.radius = _radius;
@@ -419,16 +434,18 @@ class Enemy {
     this.damage = _damage;
     this.bounty = _bounty;
 
-
+    // colouring
     this.fillColour = _fillColour;
-    this.strokeColour = _strokeColour;
     this.currentFillColour = this.fillColour;
     this.damagedFillColour = color(255);
     this.healedFillColour = color(199, 252, 206);
     this.lastTimeDamaged = 0;
     this.lastTimeHealed = 0;
 
-    // spawn enemy in random location
+    this.spawnInZombie();
+  }
+  
+  spawnInZombie(){ // spawn enemy in random location
     if (random(1) < 0.5){
       this.pos.y = random(-height/2, 0);
     }
@@ -449,7 +466,7 @@ class Enemy {
     translate(this.pos.x, this.pos.y);
     this.angle = atan2(player.pos.y - this.pos.y, player.pos.x - this.pos.x);
     this.determineFillColour();
-    stroke(this.strokeColour);
+    stroke("black");
     rotate(this.angle);
     circle(0, 0, this.radius * 2);
     pop();
@@ -460,19 +477,23 @@ class Enemy {
     this.pos.y += this.speed * sin(this.angle);
   }
 
-  takeDamage(){
+  takeDamage(){ // taking damage from bullets; triggering bomb explosions
     for (let i = playerBulletsArray.length - 1; i >= 0; i--){
       if (dist(playerBulletsArray[i].pos.x, playerBulletsArray[i].pos.y, this.pos.x, this.pos.y) < this.radius * 1.1){
+        // when hit by bullet, take damage
         if (playerBulletsArray[i].type === "bullet"){
           this.health -= playerBulletsArray[i].damage;
           this.lastTimeDamaged = millis();
         }
+        // when hit by bomb, cause them to explode
         else if (playerBulletsArray[i].type === "bomb"){
           playerBulletsArray[i].explode();
         }
 
+        // removes bullet/bomb that hit them
         playerBulletsArray.splice(i, 1);
 
+        // play SFX
         hitEnemySFX.setVolume(0.8);
         hitEnemySFX.play();
       }
@@ -502,9 +523,11 @@ class Enemy {
       let index = zombiesArray.indexOf(this);
       playerCash += this.bounty;
 
+      // play SFX
       enemyDieSFX.setVolume(0.3);
       enemyDieSFX.play();
 
+      // remove from list
       zombiesArray.splice(index, 1);
     }
   }
@@ -512,43 +535,45 @@ class Enemy {
 
 class Normal extends Enemy {
   constructor(){
-    super(normal, 15, 3, 3, 1, 10, color(252, 144, 43), "black");
+    super(normal, 15, 3, 3, 1, 10, color(252, 144, 43));
   }
 }
 
 class Guardian extends Enemy {
   constructor(){
-    super(guardian, 20, 2.6, 6, 2, 25, color(252, 86, 3), "black");
+    super(guardian, 20, 2.6, 6, 2, 25, color(252, 86, 3));
   }
 }
 
 class Fast extends Enemy {
   constructor(){
-    super(fast, 12, 4.5, 2, 2, 15, color(247, 221, 69), "black");
+    super(fast, 12, 4.5, 2, 2, 15, color(247, 221, 69));
   }
 }
 
 class Bolt extends Enemy {
   constructor(){
-    super(bolt, 12, 7.5, 2, 3, 35, color(255, 255, 92), "black");
+    super(bolt, 12, 7.5, 2, 3, 35, color(36, 207, 255));
   }
 }
 
 class Strong extends Enemy {
   constructor(){
-    super(strong, 35, 2, 12, 5, 50, color(245, 69, 66), "black");
+    super(strong, 35, 2, 12, 5, 50, color(245, 69, 66));
   }
 }
 
 class Brute extends Enemy {
   constructor(){
-    super(brute, 42, 1.4, 25, 8, 150, color(173, 0, 0), "black");
+    super(brute, 42, 1.4, 25, 8, 150, color(173, 0, 0));
   }
 }
 
 class Shooter extends Enemy {
   constructor(){
-    super(shooter, 15, 1.2, 4, 1, 20, color(92, 66, 237), "black");
+    super(shooter, 15, 1.2, 4, 1, 20, color(92, 66, 237));
+
+    // stats for shooting/bullets
     this.firerate = 4000; // milliseconds
     this.lastTimeFiredBullet = 0;
     this.bulletRadius = 5;
@@ -556,12 +581,13 @@ class Shooter extends Enemy {
     this.bulletSpd = 12;
   }
 
-  shoot(){
+  shoot(){ // shoots bullets based on timer
     if (this.pos.x > 0 && this.pos.x < width && this.pos.y > 0 && this.pos.y < height){
       if (this.lastTimeFiredBullet + this.firerate < millis()){
         this.lastTimeFiredBullet = millis();
         zombieProjectileArray.push(new EnemyBullet(this.pos.x, this.pos.y, this.angle, this.bulletRadius, this.fillColour, this.bulletDamage, this.bulletSpd,)); // also use angle offset potentially
         
+        // play SFX
         enemyBulletShootSFX.setVolume(0.2);
         enemyBulletShootSFX.play();
       }
@@ -571,21 +597,23 @@ class Shooter extends Enemy {
 
 class Sprayer extends Enemy{
   constructor(){
-    super(sprayer, 20, 0.8, 8, 1, 50, color(66, 19, 186), "black");
+    super(sprayer, 20, 0.8, 8, 1, 50, color(66, 19, 186));
+
+    // stats for shooting/bullets
     this.firerate = 250; // milliseconds
     this.lastTimeFiredBullet = 0;
     this.bulletRadius = 3.5;
     this.bulletDamage = 1;
     this.bulletSpd = 10;
-
-    
   }
-  shoot(){
+
+  shoot(){ // shoots bullets based on timer
     if (this.pos.x > 0 && this.pos.x < width && this.pos.y > 0 && this.pos.y < height){
       if (this.lastTimeFiredBullet < millis()){
         this.lastTimeFiredBullet = millis() + this.firerate;
         zombieProjectileArray.push(new EnemyBullet(this.pos.x, this.pos.y, this.angle, this.bulletRadius, this.fillColour, this.bulletDamage, this.bulletSpd,)); // also use angle offset potentially
         
+        // play SFX
         enemyBulletShootSFX.setVolume(0.1);
         enemyBulletShootSFX.play();
       }
@@ -595,12 +623,15 @@ class Sprayer extends Enemy{
 
 class Healer extends Enemy {
   constructor(){
-    super(healer, 15, 1.7, 6, 1, 25, color(62, 214, 65), "black");
+    super(healer, 15, 1.7, 6, 1, 25, color(62, 214, 65));
+    
+    // stats for healing ability
     this.pulseRate = 2000; // milliseconds
     this.lastTimePulsed = 0;
     this.pulseRadius = 200;
     this.healAmount = 2;
 
+    // effects of heal ability
     this.currentPulseColour;
     this.pulseColour = this.fillColour;
     this.pulseColourIsHealing = this.healedFillColour;
@@ -610,21 +641,20 @@ class Healer extends Enemy {
     this.minLineSize = 1;
   }
 
-  // for some reason, the line goes over the enemies, which isn't what's wanted
-  pulseRangeDisplay(){
+  pulseRangeDisplay(){ // displays if enemies are within its healing range
     let flashTime = 100;
 
-    for (let i = zombiesArray.length - 1; i >= 0; i--){
+    for (let i = zombiesArray.length - 1; i >= 0; i--){ // isn't the same enemy/a healer
+      
       if (this !== zombiesArray[i] && zombiesArray[i].type !== healer){
+        // check distance between
         let distanceApart = dist(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y);
         
         if (distanceApart < this.pulseRadius){
-          // normal colour
-          if (millis() >= this.lastTimeHealed + flashTime){
+          if (millis() >= this.lastTimeHealed + flashTime){ // normal colour
             this.currentPulseColour = this.pulseColour;
           }
-          // heal flash
-          else {
+          else { // heal flash
             this.currentPulseColour = this.pulseColourIsHealing;
           }
 
@@ -642,27 +672,28 @@ class Healer extends Enemy {
     }
   }
 
-  pulse(){
+  pulse(){ // actual healing pulse
     if (this.pos.x > 0 && this.pos.x < width && this.pos.y > 0 && this.pos.y < height){
       if (this.lastTimePulsed + this.pulseRate < millis()){
         this.lastTimePulsed = millis();
         this.lastTimeHealed = millis();
         this.healAllies();
-
-        
       }
     }
   }
 
-  healAllies(){
+  healAllies(){ // heals allies when hit by pulse
     for (let i = zombiesArray.length - 1; i >= 0; i--){
-      if (this !== zombiesArray[i] && zombiesArray[i].type !== healer){
-        if (dist(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y) < this.pulseRadius){
+      if (this !== zombiesArray[i] && zombiesArray[i].type !== healer){ // isn't the same enemy/a healer
+        if (dist(this.pos.x, this.pos.y, zombiesArray[i].pos.x, zombiesArray[i].pos.y) < this.pulseRadius){ // is in range
           zombiesArray[i].health += this.healAmount;
 
+          // sets health back to max if overheals
           if (zombiesArray[i].health > zombiesArray[i].maxHealth){
             zombiesArray[i].health = zombiesArray[i].maxHealth;
           }
+
+          // play SFX
           enemyHealSFX.setVolume(0.8);
           enemyHealSFX.play();
           zombiesArray[i].lastTimeHealed = millis();
@@ -707,6 +738,7 @@ class EnemyBullet {
   }
 }
 
+
 class UpgradesShop {
   constructor(){
     this.isOpened = false;
@@ -716,15 +748,14 @@ class UpgradesShop {
     this.openShopButtonColour = color(170, 170, 170, 255);
 
     this.currentRadius;
-    this.intermissionRadius = width / 16;
-    this.duringWaveRadius = width / 24;
+    this.intermissionRadius = width * 0.03;
+    this.duringWaveRadius = width * 0.02;
 
     // display stuff for ui when the shop IS opened
     this.shopBGPos = createVector(width / 2, this.openShopButtonPos.y / 2);
     this.shopBGColour = color(170, 170, 170, 50);
 
     // shop costs, upgrade lvs, increase values
-
     this.healthLv = 0;
     this.healthCost = 150;
     this.healthCostIncrease = 250;
@@ -763,12 +794,14 @@ class UpgradesShop {
 
     if (canBeginNextWave){
       // displays "T" to indicate how to open shop
+      let textSizeOfKeyBind = 40;
+
       noStroke();
       textAlign(CENTER);
       fill("black");
-      textSize(30);
+      textSize(textSizeOfKeyBind);
       textStyle(BOLD);
-      text("T", this.openShopButtonPos.x, this.openShopButtonPos.y + 30);
+      text("T", this.openShopButtonPos.x, this.openShopButtonPos.y + textSizeOfKeyBind);
       if (!this.isOpened){
         this.currentRadius = this.intermissionRadius;
         this.openShopButtonPos.y = 0;
@@ -782,7 +815,7 @@ class UpgradesShop {
         fill(this.shopBGColour);
         stroke("black");
         rectMode(CENTER);
-        rect(this.shopBGPos.x, this.shopBGPos.y, width * 3/5, height / 1.5, cornerRadius);
+        rect(this.shopBGPos.x, this.shopBGPos.y, width * 0.35, height / 1.5, cornerRadius);
 
         this.displayTextUI();
       }
@@ -801,8 +834,8 @@ class UpgradesShop {
     textAlign(CENTER);
     fill("white");
 
-    let textX1 = width * 0.36;
-    let textX2 = width * 0.64;
+    let textX1 = width * 0.42;
+    let textX2 = width * 0.58;
 
     let textY1 = height/13;
     let textY2 = 2 * height/13;
@@ -832,7 +865,7 @@ class UpgradesShop {
     // cash text
     textAlign(LEFT);
     textSize(24);
-    text("CASH: " + playerCash, width / 4.6, height / 3.2);
+    text("CASH: " + playerCash, width / 3, height / 3.2);
   }
 
   maxHealthUpgrade(){
@@ -919,8 +952,6 @@ class UpgradesShop {
 
 
 
-
-
 function preload(){
   gameMusicLoop = loadSound("Assets/n-Dimensions (Main Theme - Retro Ver.mp3");
 
@@ -937,12 +968,7 @@ function preload(){
 }
 
 function setup(){
-  if (windowWidth > windowHeight){
-    createCanvas(windowHeight, windowHeight);
-  }
-  else if (windowWidth < windowHeight){
-    createCanvas(windowWidth, windowWidth);
-  }
+  createCanvas(windowWidth, windowHeight);
   reset();
 }
 
@@ -980,7 +1006,6 @@ function draw(){
   manageBulletFunctions();
   manageZombieFunctions();
   managePlayerFunctions();
-  
 
   // zombie wave management
   zombieWaveManager();
@@ -1429,8 +1454,8 @@ function tutorialText(){
       text("Press the space bar to begin", textPos.x, textPos.y - tutorialTextSize * 12);
     }
     if (waveNum === 1){
-      text("Press wave to start the next wave", textPos.x, textPos.y)
-      text("You can tell when you can start the next wave when enemies stop approaching you", textPos.x, textPos.y + tutorialTextSize * 2)
+      text("Press wave to start the next wave", textPos.x, textPos.y);
+      text("You can tell when you can start the next wave when enemies stop approaching you", textPos.x, textPos.y + tutorialTextSize * 2);
     }
     if (waveNum === 2){
       text("Press ' T ' to open up the shop", textPos.x, textPos.y);
