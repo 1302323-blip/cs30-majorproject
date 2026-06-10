@@ -2,6 +2,16 @@
 // Steven Qiu
 // March 5, 2026
 
+// Extra for Experts:
+// - Makes use of sound effects for multiple interactions
+// - Uses classes to perform most of mechanics in game
+// - Multiple new additions compared to older version
+//  - Shop
+//  - Knockback + flash effects
+//  - Wave Spawn System
+//  - Enemy Projectiles
+//  - Etc.
+
 let player;
 
 // arrays
@@ -37,7 +47,20 @@ let enemyDieSFX;
 let openShopSFX;
 let buyUpgradeSFX;
 
+// enemy types
+let normal = "normal";
+let guardian = "guardian";
+let fast = "fast";
+let bolt = "bolt";
+let strong = "strong";
+let brute = "brute";
+let shooter = "shooter";
+let sprayer = "sprayer";
+let healer = "healer";
 
+// classes ------------------------------------------------------------------------------------------------------------------------------------------
+
+// player classes ---------------------------------------------------------------------------------
 class Player {
   constructor(){
     this.pos = createVector(width/2, height / 2);
@@ -420,7 +443,7 @@ class PlayerExplosion {
   }
 }
 
-
+// enemy classes ----------------------------------------------------------------------------------
 class Enemy {
   constructor(_enemyType, _radius, _spd, _health, _damage, _bounty, _fillColour){
     this.pos = createVector();
@@ -738,12 +761,12 @@ class EnemyBullet {
   }
 }
 
-
+// shop class
 class UpgradesShop {
   constructor(){
     this.isOpened = false;
 
-    // display shop stuff for when it isn't opened
+    // Shop UI; Tab/Button thing
     this.openShopButtonPos = createVector(width / 2, 0);
     this.openShopButtonColour = color(170, 170, 170, 255);
 
@@ -751,36 +774,42 @@ class UpgradesShop {
     this.intermissionRadius = width * 0.03;
     this.duringWaveRadius = width * 0.02;
 
-    // display stuff for ui when the shop IS opened
+    // Shop UI; Background
     this.shopBGPos = createVector(width / 2, this.openShopButtonPos.y / 2);
     this.shopBGColour = color(170, 170, 170, 50);
 
     // shop costs, upgrade lvs, increase values
+    // max health
     this.healthLv = 0;
     this.healthCost = 150;
     this.healthCostIncrease = 250;
     this.healthIncreaseAmount = 1;
+
+    // movement speed
+    this.movementSpdLv = 0;
+    this.movementSpdCost = 100;
+    this.movementSpdCostIncrease = 250;
+    this.movementSpdIncreaseAmount = 0.5;
     
+    // bullet damage
     this.bulletDmgLv = 0;
     this.bulletDmgCost = 300;
     this.bulletDmgCostIncrease = 200;
     this.bulletDmgIncreaseAmount = 1.25;
 
-    this.movementSpdLv = 0;
-    this.movementSpdCost = 100;
-    this.movementSpdCostIncrease = 250;
-    this.movementSpdIncreaseAmount = 0.5;
-
+    // bullet firerate
     this.bulletFirerateLv = 0;
     this.bulletFirerateCost = 250;
     this.bulletFirerateCostIncrease = 200;
     this.bulletFirerateIncreaseAmount = 0.8;
 
+    // bomb damage
     this.bombDmgLv = 0;
     this.bombDmgCost = 300;
     this.bombDmgCostIncrease = 200;
     this.bombDmgIncreaseAmount = 1.25;
 
+    // bomb AOE
     this.bombAreaLv = 0;
     this.bombAreaCost = 250;
     this.bombAreaCostIncrease = 150;
@@ -788,12 +817,13 @@ class UpgradesShop {
   }
 
   display(){
+    // Tab/Button UI
     stroke("black");
     fill(this.openShopButtonColour);
     arc(this.openShopButtonPos.x, this.openShopButtonPos.y, this.currentRadius * 2, this.currentRadius * 2, 0, PI);
 
     if (canBeginNextWave){
-      // displays "T" to indicate how to open shop
+      // displays "T" to indicate how to open shop; on top of button
       let textSizeOfKeyBind = 40;
 
       noStroke();
@@ -802,6 +832,7 @@ class UpgradesShop {
       textSize(textSizeOfKeyBind);
       textStyle(BOLD);
       text("T", this.openShopButtonPos.x, this.openShopButtonPos.y + textSizeOfKeyBind);
+
       if (!this.isOpened){
         this.currentRadius = this.intermissionRadius;
         this.openShopButtonPos.y = 0;
@@ -826,7 +857,7 @@ class UpgradesShop {
     }
   }
 
-  displayTextUI(){
+  displayTextUI(){ // draws all text related to upgrades + cash
     noStroke();
     let shopTextSize = 15;
     textSize(shopTextSize);
@@ -834,6 +865,7 @@ class UpgradesShop {
     textAlign(CENTER);
     fill("white");
 
+    // positions sorting
     let textX1 = width * 0.42;
     let textX2 = width * 0.58;
 
@@ -841,24 +873,27 @@ class UpgradesShop {
     let textY2 = 2 * height/13;
     let textY3 = 3 * height/13;
 
-    // max health increase
+    // max health
     text("INCREASE MAX HEALTH (1)", textX1, textY1);
     text("COST: " + this.healthCost + "   LV: " + this.healthLv, textX1, textY1 + shopTextSize);
 
-    // bullet damage increase
+    // bullet damage
     text("INCREASE BULLET DAMAGE (3)", textX1, textY2);
     text("COST: " + this.bulletDmgCost + "   LV: " + this.bulletDmgLv, textX1, textY2 + shopTextSize);
 
+    // bomb damage
     text("INCREASE BOMB DAMAGE (5)", textX1, textY3);
     text("COST: " + this.bombDmgCost + "   LV: " + this.bombDmgLv, textX1, textY3 + shopTextSize);
 
-
+    // movement speed
     text("INCREASE MOVEMENT SPEED (2)", textX2, textY1);
     text("COST: " + this.movementSpdCost + "   LV: " + this.movementSpdLv, textX2, textY1 + shopTextSize);
 
+    // bullet firerate
     text("INCREASE BULLET FIRE RATE (4)", textX2, textY2);
     text("COST: " + this.bulletFirerateCost + "   LV: " + this.bulletFirerateLv, textX2, textY2 + shopTextSize);
 
+    // bomb AOE
     text("INCREASE EXPLOSION RADIUS (6)", textX2, textY3);
     text("COST: " + this.bombAreaCost + "   LV: " + this.bombAreaLv, textX2, textY3 + shopTextSize);
 
@@ -868,6 +903,7 @@ class UpgradesShop {
     text("CASH: " + playerCash, width / 3, height / 3.2);
   }
 
+  // upgrades
   maxHealthUpgrade(){
     if (playerCash >= this.healthCost){
       player.maxHealth += this.healthIncreaseAmount;
@@ -905,7 +941,6 @@ class UpgradesShop {
     }
   }
 
-
   bulletFirerateUpgrade(){
     if (playerCash >= this.bulletFirerateCost && player.bulletFirerate > 50){
       player.bulletFirerate *= this.bulletFirerateIncreaseAmount;
@@ -942,6 +977,7 @@ class UpgradesShop {
     }
   }
 
+  // SFX
   playUpgradeSFX(){
     buyUpgradeSFX.setVolume(0.2);
     if (!buyUpgradeSFX.isPlaying()){
@@ -950,9 +986,9 @@ class UpgradesShop {
   }
 }
 
+// set up + running of the game ---------------------------------------------------------------------------------------------------------------------
 
-
-function preload(){
+function preload(){ // for SFX
   gameMusicLoop = loadSound("Assets/n-Dimensions (Main Theme - Retro Ver.mp3");
 
   shootBulletSFX = loadSound("Assets/SFX/synth_laser_03.ogg");
@@ -972,7 +1008,7 @@ function setup(){
   reset();
 }
 
-function reset(){
+function reset(){ // sets up/resets everything when games starts/restarts
   player = new Player();
   playerBulletsArray.splice(0);
   zombiesArray.splice(0);
@@ -994,7 +1030,6 @@ function reset(){
   gameMusicLoop.loop();
 }
 
-
 function draw(){
   background(0);
 
@@ -1011,11 +1046,9 @@ function draw(){
   zombieWaveManager();
   zombieWaveButton();
   isAllZombiesDead();
-
-  // debug; delete once project finished
-  debugText();
 }
 
+// class management ---------------------------------------------------------------------------------------------------------------------------------
 
 function managePlayerFunctions(){
   player.movement();
@@ -1025,27 +1058,28 @@ function managePlayerFunctions(){
   player.collideWithZombieBullet();
   player.display();
   
-  if (player.isDead()){
+  if (player.isDead()){ // resets game when all player health is lost
     reset();
   }
 }
 
 function manageBulletFunctions(){
-  for (let i = playerBombExplodeArray.length - 1; i >= 0; i--){
+  for (let i = playerBombExplodeArray.length - 1; i >= 0; i--){ // bomb explosion display (makes it on lower layer)
     playerBombExplodeArray[i].display();
   }
+
   for (let i = playerBulletsArray.length - 1; i >= 0; i--){
     playerBulletsArray[i].display();
     playerBulletsArray[i].movement();
 
-    if (playerBulletsArray[i].isOffScreen()){
+    if (playerBulletsArray[i].isOffScreen()){ // delete when offscreen
       playerBulletsArray.splice(i, 1);
     }
   }
 }
 
 function manageZombieFunctions(){
-  for (let i = zombiesArray.length - 1; i >= 0; i--){
+  for (let i = zombiesArray.length - 1; i >= 0; i--){ // for special abilities
     specialZombieFunctions(zombiesArray[i]);
   }
 
@@ -1073,24 +1107,15 @@ function manageZombieProjectileFunctions(){
     zombieProjectileArray[i].display();
     zombieProjectileArray[i].movement();
 
-    if (zombieProjectileArray[i].isOffScreen()){
+    if (zombieProjectileArray[i].isOffScreen()){ // delete when offscreen
       zombieProjectileArray.splice(i, 1);
     }
   }
 }
 
+// wave related functions ---------------------------------------------------------------------------------------------------------------------------
 
-let normal = "normal";
-let guardian = "guardian";
-let fast = "fast";
-let bolt = "bolt";
-let strong = "strong";
-let brute = "brute";
-let shooter = "shooter";
-let sprayer = "sprayer";
-let healer = "healer";
-
-function zombieWaveManager(){
+function zombieWaveManager(){ // determines what each wave will be spawning
   // intervals are written in seconds
   if (waveNum === 1){ // normal
     spawnZombies(normal, 4, 1.3, 1);
@@ -1259,8 +1284,7 @@ function zombieWaveManager(){
   }
 }
 
-// organization function - used to spawn specific type of enemy called in spawnZomibes()
-function zombieTypeToSpawn(_enemyType){
+function zombieTypeToSpawn(_enemyType){ // organization function - used to spawn specific type of enemy called in spawnZomibes()
   if (_enemyType === normal){
     zombiesArray.push(new Normal());
   }
@@ -1290,24 +1314,24 @@ function zombieTypeToSpawn(_enemyType){
   }
 }
 
-// spawns zombies in each miniWave, determining amount and intervals between each spawn
-function spawnZombies(_enemyType, _amount, _spawnInterval, _miniWaveNum){
-  // sets _spawnInterval to millis() to make if statements work
-  _spawnInterval *= 1000;
+function spawnZombies(_enemyType, _amount, _spawnInterval, _miniWaveNum){ // spawns zombies in each miniWave, determining amount and intervals between each spawn
+  _spawnInterval *= 1000; // sets _spawnInterval to millis() to make if statements work
+
   if (miniWave === _miniWaveNum){
-    if (millis() > lastSpawnTime + _spawnInterval){
+    if (millis() > lastSpawnTime + _spawnInterval){ // spawns during miniwave
       zombieTypeToSpawn(_enemyType);
       lastSpawnTime = millis();
       enemySpawnedCounter += 1;
     }
-    if (enemySpawnedCounter === _amount){
+    
+    if (enemySpawnedCounter === _amount){ // changes out of miniwave
       miniWave += 1;
       enemySpawnedCounter = 0;
     }
   }
 }
 
-function waitToSpawn(_seconds, _miniWaveNum){
+function waitToSpawn(_seconds, _miniWaveNum){ // waits for a certain amount of time before spawning a new miniwave
   _seconds *= 1000;
   if (miniWave === _miniWaveNum){
     if (millis() > lastSpawnTime + _seconds){
@@ -1317,7 +1341,7 @@ function waitToSpawn(_seconds, _miniWaveNum){
   }
 }
 
-function wTSpawnUnderEnemyCount(_enemyCountReq, _miniWaveNum){
+function wTSpawnUnderEnemyCount(_enemyCountReq, _miniWaveNum){ // waits until the enemy count is below a certain threshold before spawning a new miniwave
   if (miniWave === _miniWaveNum){
     if (zombiesArray.length <= _enemyCountReq){
       miniWave += 1;
@@ -1326,16 +1350,13 @@ function wTSpawnUnderEnemyCount(_enemyCountReq, _miniWaveNum){
   }
 }
 
-// tracks if all zombies part of a whole wave have been spawned
-// organization function
-function areAllZombiesSpawned(_finalMiniWave){
+function areAllZombiesSpawned(_finalMiniWave){ // tracks if all zombies part of a whole wave have been spawned
   if (miniWave === _finalMiniWave + 1){
     zombiesFinishedSpawning = true;
   }
 }
 
-// tracks if all zombies are dead, to see if a new wave can be started
-function isAllZombiesDead(){
+function isAllZombiesDead(){ // tracks if all zombies are dead, to see if a new wave can be started
   if (zombiesArray.length === 0){
     allZombiesDead = true;
   }
@@ -1344,20 +1365,7 @@ function isAllZombiesDead(){
   }
 }
 
-// when called, starts the next wave
-function newWave(){
-  canBeginNextWave = false;
-  zombiesFinishedSpawning = false;
-  waveNum += 1;
-  miniWave = 1;
-
-  upgradesShop.isOpened = false;
-  openShopSFX.play();
-}
-
-
-// when keybind pressed, start the wave
-function zombieWaveButton(){
+function zombieWaveButton(){ // when keybind pressed, start the wave
   if (canBeginNextWave){
     if (keyIsDown(32)){ // space key pressed
       newWave();
@@ -1369,16 +1377,24 @@ function zombieWaveButton(){
   }
 }
 
+function newWave(){ // when called, starts the next wave
+  canBeginNextWave = false;
+  zombiesFinishedSpawning = false;
+  waveNum += 1;
+  miniWave = 1;
 
+  upgradesShop.isOpened = false;
+  openShopSFX.play();
+}
+
+// shop related functions ---------------------------------------------------------------------------------------------------------------------------
 
 function manageShopFunctions(){
   upgradesShop.display();
 }
 
-// controls navigation + purchases in shop using keybinds
-function keyReleased(){
-  // switching between weapons
-  if (key === "e"){
+function keyReleased(){ // controls navigation + purchases in shop using keybinds; also controls weapon switching
+  if (key === "e") {// presing e switches between weapons
     if (player.currentWeapon === "bullet"){
       player.currentWeapon = "bomb";
     }
@@ -1390,8 +1406,8 @@ function keyReleased(){
     openShopSFX.play();
   }
 
-  // pressing t opens the shop
-  if (key === "t" && canBeginNextWave){
+  
+  if (key === "t" && canBeginNextWave){ // pressing t opens the shop
     upgradesShop.isOpened = !upgradesShop.isOpened;
     upgradesShop.page = 1;
     
@@ -1399,8 +1415,8 @@ function keyReleased(){
     openShopSFX.play();
   }
 
-  // allows you to purchase upgrades when the shop is opened
-  if (upgradesShop.isOpened){
+  
+  if (upgradesShop.isOpened){ // allows you to purchase upgrades when the shop is opened using number keys
     if (key === "1"){
       upgradesShop.maxHealthUpgrade();
     }
@@ -1424,20 +1440,7 @@ function keyReleased(){
 
 
 
-// used purely for debugging; delete once project is finished
-function debugText(){
-  textSize(10);
-  textStyle(NORMAL);
-  if (player.isInIFrames){
-    fill("yellow");
-  }
-  else{
-    fill("white");
-  }
-  text("Iframes: " + player.isInIFrames, 50, 50);
-}
-
-function tutorialText(){
+function tutorialText(){ // displays text inbetween waves to give tips and advice
   let textPos = createVector(width / 2, height * 0.65);
   let tutorialTextSize = 22;
   fill("white");
