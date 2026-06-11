@@ -576,7 +576,7 @@ class Fast extends Enemy {
 
 class Bolt extends Enemy {
   constructor(){
-    super(bolt, 12, 7.5, 2, 3, 35, color(36, 207, 255));
+    super(bolt, 12, 7.5, 2, 2, 35, color(36, 207, 255));
   }
 }
 
