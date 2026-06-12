@@ -577,7 +577,7 @@ class Fast extends Enemy {
 
 class Bolt extends Enemy {
   constructor(){
-    super(bolt, 12, 7.5, 2, 2, 35, color(36, 207, 255));
+    super(bolt, 12, 7.5, 1.5, 2, 35, color(36, 207, 255));
   }
 }
 
@@ -783,7 +783,7 @@ class UpgradesShop {
     // max health
     this.healthLv = 0;
     this.healthCost = 150;
-    this.healthCostIncrease = 250;
+    this.healthCostIncrease = 150;
     this.healthIncreaseAmount = 1;
 
     // movement speed

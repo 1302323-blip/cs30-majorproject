@@ -25,7 +25,7 @@ I didn't entirely understand how I could make a wave system so I needed some gui
 Debugging was probably more difficult though, as there were times where I didn't understand why certain parts of my code weren't working and it was super annoying and difficult for me to figure out why it wasn't working and what I could do to fix this. Some examples of this include those from the next question.
 
 ## Were there any problems you couldn't solve?
-There's a few problems I had with my code that were pretty annoying and couldn't figure out any solutions to. Two main ones I can think of are:
+There's a few problems I had with my code that were pretty annoying and couldn't figure out any solutions to. Main ones I can think of are:
 - The damage-flash on the player still keeps the stroke around them, when they are supposed to become completely transparent. Hard to notice on a black background but still annoying to me
 - Weird thing with inputs where sometimes pressing the respective key once will trigger the function the key is tied to twice. This is most noticable when opening/closing the shop and switching weapons with the "e" key
 - Sound effects and music glitching out as the game progresses
