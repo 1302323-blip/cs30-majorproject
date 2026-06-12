@@ -283,6 +283,7 @@ class Player {
     fill("black");
     stroke("white");
     textAlign(CENTER);
+    textStyle(NORMAL);
     textSize(25);
     text(this.health, this.healthUIPos.x, this.healthUIPos.y + 25/4);
   }
@@ -1222,12 +1223,12 @@ function zombieWaveManager(){ // determines what each wave will be spawning
     areAllZombiesSpawned(4);
   }
   if (waveNum === 12){
-    spawnZombies(bolt, 5, 1, 1);
+    spawnZombies(bolt, 4, 1, 1);
     spawnZombies(guardian, 5, 0.6, 2);
     spawnZombies(bolt, 3, 0.8, 3);
-    spawnZombies(strong, 7, 0.1, 4);
+    spawnZombies(strong, 5, 0.1, 4);
     spawnZombies(healer, 5, 0.8, 5);
-    spawnZombies(bolt, 5, 1.5, 6);
+    spawnZombies(bolt, 4, 1.5, 6);
 
     areAllZombiesSpawned(6);
   }
@@ -1238,20 +1239,20 @@ function zombieWaveManager(){ // determines what each wave will be spawning
 
     wTSpawnUnderEnemyCount(5, 4);
 
-    spawnZombies(bolt, 3, 0.1, 5);
-    spawnZombies(shooter, 8, 0.3, 6);
+    spawnZombies(bolt, 3, 0.7, 5);
+    spawnZombies(shooter, 6, 0.3, 6);
     spawnZombies(sprayer, 1, 3, 7);
-    spawnZombies(healer, 4, 0.3, 8);
+    spawnZombies(healer, 3, 0.3, 8);
 
     areAllZombiesSpawned(8);
   }
   if (waveNum === 14){
-    spawnZombies(sprayer, 3, 0.2, 1);
+    spawnZombies(sprayer, 2, 0.2, 1);
     spawnZombies(guardian, 4, 0.5, 2);
-    spawnZombies(shooter, 8, 0.8, 3);
+    spawnZombies(shooter, 6, 0.8, 3);
     spawnZombies(healer, 2, 0.3, 4);
 
-    spawnZombies(guardian, 10, 0.9, 5);
+    spawnZombies(guardian, 8, 0.9, 5);
     spawnZombies(shooter, 5, 0.2, 6);
     spawnZombies(bolt, 5, 2, 7);
 
@@ -1268,17 +1269,17 @@ function zombieWaveManager(){ // determines what each wave will be spawning
     spawnZombies(brute, 1, 0.1, 6);
     spawnZombies(fast, 18, 0.3, 7);
     spawnZombies(shooter, 5, 0.8, 8);
-    spawnZombies(brute, 2, 0.5, 9);
-    spawnZombies(healer, 5, 1, 10);
-    spawnZombies(bolt, 4, 0.8, 11);
+    spawnZombies(brute, 1, 0.5, 9);
+    spawnZombies(healer, 4, 1, 10);
+    spawnZombies(bolt, 3, 0.8, 11);
 
     wTSpawnUnderEnemyCount(5, 12);
 
-    spawnZombies(brute, 5, 0.3, 13);
+    spawnZombies(brute, 3, 0.3, 13);
     spawnZombies(shooter, 8, 0.4, 14);
     spawnZombies(sprayer, 1, 0.1, 15);
     spawnZombies(guardian, 10, 1, 16);
-    spawnZombies(sprayer, 2, 5, 17);
+    spawnZombies(sprayer, 2, 4, 17);
 
     areAllZombiesSpawned(17);
   }

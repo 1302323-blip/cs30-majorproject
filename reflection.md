@@ -28,3 +28,4 @@ Debugging was probably more difficult though, as there were times where I didn't
 There's a few problems I had with my code that were pretty annoying and couldn't figure out any solutions to. Two main ones I can think of are:
 - The damage-flash on the player still keeps the stroke around them, when they are supposed to become completely transparent. Hard to notice on a black background but still annoying to me
 - Weird thing with inputs where sometimes pressing the respective key once will trigger the function the key is tied to twice. This is most noticable when opening/closing the shop and switching weapons with the "e" key
+- Sound effects and music glitching out as the game progresses
